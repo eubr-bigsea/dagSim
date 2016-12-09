@@ -1,0 +1,951 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+
+<!-- Mirrored from www.lua.org/manual/5.3/manual.html by HTTrack Website Copier/3.x [XR&CO'2014], Fri, 10 Jun 2016 20:17:08 GMT -->
+<HEAD>
+<TITLE>Scheduler 1.62 Reference Manual</TITLE>
+<LINK REL="stylesheet" TYPE="text/css" HREF="../../scheduler.css">
+<LINK REL="stylesheet" TYPE="text/css" HREF="../manual.css">
+<META HTTP-EQUIV="content-type" CONTENT="text/html; charset=iso-8859-1">
+</HEAD>
+
+<BODY>
+
+<H1>
+<A ></A>
+Scheduler 1.62 Reference Manual
+</H1>
+
+<P>
+by Enrico Barbierato (<i>enrico.barbierato[at]polimi.it</i>), Marco Gribaudo<br>
+Dipartimento di Elettronica, Informatica e Bioingeneria, Politecnico di Milano,<br>
+Via Ponzio 34/5 - 20133 - Milano<br>
+Italy<br>
+
+
+<P>
+
+
+<DIV CLASS="menubar">
+<A HREF="contents.html#contents">contents</A>
+&middot;
+<A HREF="contents.html#index">index</A>
+&middot;
+</DIV>
+
+<!-- ====================================================================== -->
+<p>
+
+
+
+
+<h1>1 &ndash; <a name="1">Introduction</a></h1>
+
+<p>
+The Scheduler Library is a collection of data structures and C-language procedures to implement a scheduler. 
+Three different data structures (List, Heap and Calendar Queue) are also provided in order to grant the maximum flexibility and performance according to the number of the scheduled events.
+
+
+<p>
+This document describes:
+<ul>
+<li>	The CalendarEvent, List, Heap, Calendar Queue and Auxiliary data structures;</li>
+<li>	The procedures creating, populating, displaying and deleting members of the above data structures;</li>
+<li>	Two examples of how this library can be used.</li>
+
+</ul>
+
+
+<p>
+The Scheduler library is implemented in <em>C</em> language. It has been tested under <b>Windows</b>, <b>MacOS</b> and <b>Ubuntu Linux</b> environments
+using <b>gcc</b> compiler.
+
+The distribution includes a demo program called <code>Scheduler</code> to show how the library can be used through two examples.
+
+
+<p>
+The Scheduler library and the Scheduler demo are free software,
+and are provided as usual with no guarantees.
+
+<h2>1.1 &ndash; <a name="1.1">A note for the developers</a></h1>
+It is possible to enable a trace of the execution by removing the comment:
+<p><i>//#define CE_DEBUG 1</i>
+<p>in the file called <b>utilities.h</b> and recompiling again.
+
+<h1>2 &ndash; <a name="2">Basic Concepts</a></h1>
+
+<p>
+This section describes the basic concepts of the library.
+
+<h2>2.1 &ndash; <a name="2.1">DEFINITIONS, ACRONYMS AND ABBREVIATIONS</a></h2>
+The following is a list of definitions for of the data structures used by the library:
+<p>
+<table border="1">
+<tr><th>Item</th><th>Description</th></tr>
+<tr><td>sCalendarEvent</td><td>This is the main data structure. It can be instantiated as a sList, a sHeap or a sCalendarQueue</td></tr>
+<tr><td>sHeap</td><td>It corresponds to a heap data structure</td></tr>
+<tr><td>sList</td><td>It corresponds to a double linked list data structure</td></tr>
+<tr><td>sCalendarQueue</td><td>It corresponds to a CalendarQueue data structure</td></tr>
+<tr><td>sParameters</td><td>It corresponds to a set of parameters used by the procedures</td></tr>
+<tr><td>sAuxlists</td><td>It includes the pointers (first and last event) to an unsorted sList data structure</td></tr>
+</table>
+
+
+<h2>2.2 &ndash; <a name="2.2">DATA STRUCTURES OVERVIEW</a></h2>
+This section explains how the data structures used by the library are defined. For each of the below data structures, a C language variable type is available.
+<h3>2.2.1 &ndash; <a name="2.2.1">LIST</a></h3>
+<p>The <b>sList</b> data structure consists of the following:
+<ul>
+<li>A string <i>id</i> representing a <i>sList</i> identifier;</li>
+<li>A double <i>timestamp</i> ;</li>
+<li>A <i>next sList</i> pointer referring to the next node (set to NULL if the node is the last in the <i>sList</i>);</li>
+<li>A <i>previous sList</i> pointer referring to the previous node (set to NULL if the node is the first in the <i>sList</i>);</li>
+<p>The following members are used by the Auxiliary list only:
+<ul>
+<li> An integer <i>W</i> representing a weight associated to the event.</li>
+<li> An integer <i>Threshold</i> representing the summation of the previous members' weights. This field is automatically updated every time there is an <i>insert</i> operation from the <i>head</i>
+of the list.</li>
+</ul>
+</ul>
+<h3>2.2.2 &ndash; <a name="2.2.2">HEAP</a></h3>
+<p>The <b>sHeap</b> data structure consists of the following:
+<ul>
+<li>	A string <i>id</i> representing a Heap identifier;</li>
+<li>	Aan array of pointers <i>Index</i>. Each element of this array points to one array of timestamps referring to events. These arrays are allocated dinamically.</li>
+<li>	An integer <i>K</i> denoting the dimension of the <i>Index</i> array;</li>
+<li> 	An integer <i>M</i> denoting the size of the array of doubles to which <i>Index</i> cells point to.</li>
+</ul>
+
+<h3>2.2.3 &ndash; <a name="2.2.3">CALENDAR QUEUE</a></h3>
+<p>The <b>sCalendarQueue</b> data structure consists of the following:
+<ul>
+<li>	A string <i>id</i> representing a Calendar Queue identifier;</li>
+<li>	A double pointer of sList type called <i>buckets</i>. Each element of this list is a list itself;</li>
+<li>	An integer <i>numberOfBuckets</i>;</li>
+<li>	An integer called <i>bucketSize</i>;</li>
+<li>	A <i>min </i>and a <i>max</i> double arrays representing the lower and upper boundaries of CALENDAR QUEUE.</li>
+</ul>
+
+<h3>2.2.4 &ndash; <a name="2.2.4">CALENDAR EVENT</a></h3>
+<p>The <b>Calendar Event</b>  data structure consists of the following:
+<ul>	
+<li>A string id representing an a Calendar Event identifier;</li>
+<li>	An integer <i>currentChoice</i> representing one of the three data structures used (<b>List</b>, <b>Heap</b> or <b>CalendarQueue</b>);</li>
+<li>	A double <i>precision</i> to be used to compare double values;</li>
+<li>A double <i>howmany</i> referring to the current number of events included in the calendar event data structure;</li>
+<li>	A union <i>datastructures</i> including a <i>sList</i>, a <i>sHeap</i> and a <i>CalendarQueue</i>. Only one of these data structures can be active at one time.</li>
+</ul>	
+<p>
+The variable type for this data structure is called sCalendarEvent.
+
+<h3>2.2.5 &ndash; <a name="2.2.5">PARAMETERS</a></h3>
+<p>The <b>sParameters</b>  data structure consists of the following:
+<ul>
+<li> An integer <i>choice</i> representing one of <b>List</b>, <b>Heap</b> or <b>Calendar Queue</b>;</li>
+<li> A double <i>epsilon</i>, used when comparing two doubles;</li>
+<li> An integer <i>numberOfBuckets</i> used to represent the number of <i>Buckets</i> in a <b>Calendar Queue</b>;</li>
+<li> An integer <i>bucket_width</i> used to represent the width of a <i>bucket</i>in a <b>Calendar Queue</b>;</li>
+<li> An integer <i>howmany</i> used to denote the maximum number of events (i.e. timestamps);</li>
+<li> An integer <i>K</i> indicating the width of the <b>Heap</b> memory array <i>Index</i>;
+<li> An integer <i>M</i> indicating the number of slots associated to each member of the heap memory array.</li>
+</ul>
+
+<h3>2.2.6 &ndash; <a name="2.2.6">AUXLISTS</a></h3>
+<p> This data structure includes an auxiliary list consisting of unsorted events, typically processed starting from the head or the tail of the list.
+<p>The <b>AUXLISTS</b> data structure consists of the following:
+<ul>
+<li>	A double <i>N1</i> representing the total number of events in the first auxiliary list;</li>
+<li>	A double pointer of sList type called <i>auxF1</i> and <i>auxL1</i> pointing repsectively to the first and to the last event of the <b>sList</b>.</li>
+</ul>
+
+<h1>3 &ndash; <a name="3">LIBRARY ALGORITHMS OVERVIEW</a></h1>
+<p>
+This section provides a general introduction to the logic exploited by the algorithms creating, populating and destroying the <b>Calendar Event</b>.
+<h2>3.1 &ndash; <a name="3.1">CALENDAR EVENT CREATION</a></h2>
+The <b>CalendarEvent</b> data structure is created by the <i>createCE</i> procedure. Since only one of <b>List</b>, <b>Heap</b> or <b>CalendarQueue</b> data structure can be chosen, the following is performed:
+<ul>
+<li>    It allocates the memory for the <i>CalendarEvent</i> data structure.
+<li>	It sets the pointer to the <b>List</b> to NULL or</li>
+<li>	It initializes the <b>Heap</b> data structure by using the <i>initializeHeap</i> procedure or</li>
+<li>	It initializes the <b>Calendar Queue</b> data structure by calling the <i>addCalendarQueue</i>  procedure.</li>
+</ul>
+
+
+
+<h2>3.2 &ndash; <a name="3.2">POPULATING THE CALENDAR EVENT</a></h2>
+<p>
+It is possible to add a new event (i.e. adding a new <i>timestamp</i>) by using the addEvent procedure, which in turn calls one of <i>addEventToList</i>, <i>addEventToHeap</i> 
+or <i>addEventToCalendarQueue</i>.
+
+<h2>3.3 &ndash; <a name="3.3">DELETING OR DESTROYING THE CALENDAR EVENT ELEMENTS</a></h2>
+
+An event can be deleted (i.e. it is disconnected by the <b>Calendar Event</b> and made available) or destroyed (the allocated memory for the event is freed). 
+The same procedure is used for both the operations, by using a <i>boolean</i> value (0/<b>REMOVE</b> for the removal and 1/<b>DESTROY</b> for the destruction)
+ passed to the <b>destroyEvent</b> procedure. Depending on the specific <b>Calend Event</b> data structure,<i>destroyEvent</i> calls in turn 
+ <i>delEventFromList</i>, <i>delEventFromHeap</i> and <i>delEventFromCalendarQueue</i>.
+
+ <h2>3.4 &ndash; <a name="3.4">CALENDAR EVENT DESTRUCTION</a></h2>
+
+<p>The <i>Calendar Event</i> memory deallocation corresponds to two operations:
+<ul>
+<li>	Deallocation of the specific data structure used;</li>
+<li>	Deallocation of the Calendar Event  data structure as a whole.</li>
+</ul>
+<p>
+This is achieved by calling the <i>freeCalendarEvent</i> procedure, which in turns involkes one of <i>freeList</i>, <i>freeHeap</i> or <i>freeCalendarQueue</i>.
+
+<h2>3.5 &ndash; <a name="3.5">POP OPERATION</a></h2>
+	
+ The <i>pop</i> operation makes available the top (the smallest) event(i.e.timestamp) included in the <i>Calendar Event</i>. According to the specific data structure, the following is performed by the <i>popEvent</i> procedure:
+ <ul>
+<li>	List: the first element is returned and the pointer to the first Event in the List is updated;</li>
+<li>	Heap: the first element of the array is returned. The data structure is balanced if necessary (to preserve the Heap property);</li>
+<li>	CalendarQueue: the popEventFromCalendarQueue procedure looks for the first non-empty bucket and it returns its first element. Then, the pointer to the first element of the bucket is updated.</li>
+<li>    Auxiliary list (unsorted): in this case, it is possible to perform a pop operation in different ways: 
+  <ul>
+	<li> Extract the first element of the list from the <i>head</i> or from the <i>tail</i> by using <i>delItemAux</i> procedure. The extract policy is denoted by a flag with value <i>HEAD</i> or <i>TAIL</i>;</li>
+	<li> Extract an element from the list randomly with <i>RPop</i> procedure by specifying a flag set to:</li>
+		<ul>
+			<li> <i>UNIFORM</i>, meaning that the element is extracted randomly from the list (all the members of the list are equiprobable);</li>
+			<li> <i>WEIGHT</i>, meaning that the element is extracted randomly from the list taking an account a weight associated to it(the probability to extract a specific element of the list grows proportionally to the element's weight)</li>
+		</ul>
+  </ul>
+
+</ul>
+
+
+<h1>4 &ndash; <a name="4">PROCEDURES DESCRIPTION</a></h1>
+In the following, the procedures used are described in more detailed according to the data structure that uses them.
+	
+<h2>4.1 &ndash; <a name="4.1">CALENDAR EVENT</a></h2>
+
+
+<h3>4.1.1 &ndash; <a name="4.1.1">createCE</a></h3>
+<p>
+It creates a <i>CalendarEvent</i> data structure, which can be one of <i>List</i>, <i>Heap</i> or <i>CalendarQueue</i>. According to the user choice, the corresponding data structure is created (i.e. the memory is allocated).
+<p>
+Input: 
+<ul>
+<li>A Parameter structure including the parameters for the CalendarEvent</li>
+</ul>
+<p>
+Output:
+<ul>
+<li>A pointer to the CalendarEvent data structure</li>
+</ul>
+sCalendarEvent * createCE(struct Parameters *pars )
+
+<h3>4.1.2 &ndash; <a name="4.1.2">displayCE</a></h3>
+<p>	 
+It displays the content of the CalendarEvent data structure
+<p>Input
+<ul>
+<li>A pointer to the CalendarEvent data structure</li>
+</ul>
+void displayCE(sCalendarEvent *pointer)
+
+<h3>4.1.3 &ndash; <a name="4.1.3">addEvent</a></h3>
+<p>
+It adds an event on the CalendarEvent data structure.
+<p>
+Input:
+<ul>
+ <li>a pointer to the CalendarEvent;</li>
+ <li>A pointer to a sList node including a timestamp</li>
+</ul>
+<p>Output:
+<ul>
+<li>An updated pointer to the sList node </li>
+</ul>
+sList * addEvent(sCalendarEvent *ce, sList *)
+<p>
+<b>Note</b>: it is possible to add a node that was previously removed (or extracted via a "pop" operation).
+It is not possible adding a node that was early destroyed (in this case, a warning message is issued).
+
+<h3>4.1.4 &ndash; <a name="4.1.4">popEvent</a></h3>
+<p>
+It performs a <i>pop</i> operation on the CalendarEvent (<b>List</b>, <b>Heap</b> or <b>CalendarQueue</b>) data structure.
+<p>
+Input
+<ul>
+<li>A pointer to a Calendar Event</li>
+<li>A <i>sList</i> double pointer (passage by reference) representing the extracted event, which includes the smallest timestamp in the <b>CalendarEvent</b> </li>
+</ul>
+void popEvent(sCalendarEvent *ce, sList **)
+
+
+<h3>4.1.5 &ndash; <a name="4.1.5">freeCalendarEvent</a></h3>
+<p>
+It releases all the data structures used (list, Heap or Calendar Queue)
+<p>
+Input: 
+<ul>	
+<li>a pointer to the CalendarEvent structure</li>
+</ul>
+void freeCalendarEvent(sCalendarEvent *ce)
+
+<h3>4.1.6 &ndash; <a name="4.1.6">createEventW</a></h3>
+<p>
+It creates a sList node given a timestamp and a weight.
+<p>Input
+<ul>
+<li>A timestamp</li>
+</ul>
+<p>Output:
+<ul>
+<li>A pointer to the new sList element.</li>
+</ul>
+<p>sList * createEventW(double timestamp, int weight)
+
+<h3>4.1.7 &ndash; <a name="4.1.7">freeEvent</a></h3>
+<p>
+It performs a free() operation on a given sList pointer.
+<p>
+Input
+<ul>
+<li>A double pointer (passage by reference) to sList data structure</li>
+</ul>
+<p>void freeEvent(sList ** node)
+
+
+<h3>4.1.8 &ndash; <a name="4.1.8">isCEEmpty</a></h3>
+<p>
+It returns 1 (true) if the Calendar Event data structure is empty, 0 (true) otherwise.
+<p>Output
+<ul>
+<li>A boolean value</li>
+</ul>
+<p>boolean isCEEmpty(sCalendarEvent *ce)
+
+<h3>4.1.9 &ndash; <a name="4.1.9">getCEFirst</a></h3>
+<p>
+It returns the first event of the Calendar Event.
+<p>
+Input
+<ul>
+<li>A pointer to a Calendar Event data structure</li>
+</ul>
+<p>
+Output
+<ul>
+<li>A pointer to a sList data structure</li>
+</ul>
+<p>sList * getCEFirst(sCalendarEvent *ce)
+
+<h3>4.1.10 &ndash; <a name="4.1.10">setEventTimestamp</a></h3>
+<p>
+It sets the timestamp for an existing event. For example, you may perform a "pop" operation, set a new timestamp for the resulting event and add the event again to the
+CalendarEvent data structure.
+<p>
+Input
+<ul>
+<li>A pointer to a Calendar Event data structure</li>
+<li>A double timestamp</li>
+</ul>
+<p>Output:
+<ul>
+<li>A pointer to a sList data structure including the new timestamp.</li>
+</ul>
+<p>sList * setEventTimestamp(sList *node, double timestamp)
+
+
+
+
+<h3>4.1.11 &ndash; <a name="4.1.11">getEventTimestamp</a></h3>
+<p>
+It returns the timestamp value for a given pointer to sList data structure.
+Input
+<ul>
+<li>A pointer to a sList data structure</li>
+</ul>
+Output
+<ul>
+<li>The double timestamp value.</li>
+</ul>
+<p>double getEventTimestamp(sList * node)
+
+<h3>4.1.12 &ndash; <a name="4.1.12">ceCurrentCapacity</a></h3>
+<p>It returns the number of record in the <b>Calendar Event</b> data structure.
+<p>Input:
+<ul>
+<li>A pointer to the <b>Calendar Event</b> data structure</li>
+</ul>
+<p>Output:
+<ul>
+<li>A double reprenting the number of events in the <b>Calendar Event</b> data structure</li>
+</ul>
+<p>
+double ceCurrentCapacity(sCalendarEvent *ce)
+
+
+<h3>4.1.13 &ndash; <a name="4.1.13">createEvent</a></h3>
+<p>
+It creates a sList node given a timestamp.
+<p>Input
+<ul>
+<li>A timestamp</li>
+</ul>
+<p>Output:
+<ul>
+<li>A pointer to the new sList element.</li>
+</ul>
+<p>sList * createEvent(double timestamp)
+
+<h3>4.1.14 &ndash; <a name="4.1.14">destroyEvent</a></h3>
+<p>
+It removes or destroys a sList node. A boolean parameter (set to <i>REMOVE</i> or <i>DESTROY</i>) allows to apply or not the <i>free</i> function.
+<p>Input
+<ul>
+<li>A pointer to a <b>Calendar Event</b></li>
+<li>A pointer to a <b>sList</b></li>
+</ul>
+<p>Output:
+<ul>
+<li>A pointer to removed sList node.</li>
+</ul>
+<p>sList * 	destroyEvent(sCalendarEvent *, sList *, boolean);</p>
+
+<h3>4.1.15 &ndash; <a name="4.1.15">linearTimeTransform</a></h3>
+<p>
+It applies a time linear factor (<i>&alpha;</i><b>t</b> + <i>&beta;</i>, where <i>&alpha;, </i><i>&beta;</i> &isin; &real;,<i>&alpha;</i> &ge; 0) to a <b>Calendar Event</b>. 
+<p>Input:
+<ul>
+<li>A pointer to the <b>Calendar Event</b></li> 
+<li>A double <i>alpha</i> representing <i>&alpha;</i></li>
+<li>A double <i>beta</i> representing <i>&beta;</i></li>
+<li>A double <i>precision</i> representing the precision used to compare double values (note that this is used for <b>Calendar Queue</b> data structure)</li>
+</ul>
+<p>void linearTimeTransform(sCalendarEvent *, double, double, double);</p>
+
+
+<h2>4.2 &ndash; <a name="4.2">LIST</a></h3>
+
+<h3>4.2.1 &ndash; <a name="4.2.1">delEventFromList</a></h3>
+<p>
+It destroys (or simply disconnects) a <i>struct</i> from the <b>List</b> or <b>Bucket</b> (the same procedure is ued for both <b>List</b> and <b>Calendar Queue</b>)
+<p>Input: 
+<ul>
+<li> a pointer to the List/Bucket structure</li>
+<li> a pointer to the node including the Event to be destroyed or disconnected</li>
+<li> a flag specifying if the node has t be destroyed (with a "free" function) or just disconnected from the <b>List</b> or <b>Bucket</b></li>
+</ul>
+sList * delEventFromList(sList *list , sList *node, boolean destroy)
+
+
+<h3>4.2.2 &ndash; <a name="4.2.2">readList</a></h3>
+<p>
+It prints the List (Bucket) content
+<p>Input
+<ul>
+<li> The pointer to the first record;</li>
+</ul>
+void readList(sList *pointer)
+
+<h3>4.2.3 &ndash; <a name="4.2.3">freeList</a></h3>
+<p>
+It deallocates the memory for the list(bucket).
+<p>
+Input:
+<ul>
+ A pointer to the list</li>
+</ul>
+void freeList(sList *pointer)
+
+<h3>4.2.4 &ndash; <a name="4.2.4">addEventToList</a></h3>
+<p>
+It adds an item to a <b>List</b> or <b>Bucket</b>, with respect to the order relationship (<)
+<p>
+Input:
+<ul>
+<li>The pointer to the first element of the <b>List</b> or <b>Bucket</b></li>
+<li> The item to be added</li>
+</ul>
+<p>Output:
+<ul>
+<li> The updated pointer to the first item of the <b>List</b> or <b>Bucket</b></li>
+</ul>
+sList * addEventToList(sList **first, sEvent event, double precision)
+
+<h3>4.2.5 &ndash; <a name="4.2.5">linearTransformationList</a></h3>
+<p>
+It applies a time linear factor (<i>&alpha;</i><b>t</b> + <i>&beta;</i>, where <i>&alpha;, </i><i>&beta;</i> &isin; &real;,<i>&alpha;</i> &ge; 0) to a <b>List</b>. 
+<p>Input:
+<ul>
+<li>A pointer to the <b>List</b></li> 
+<li>A double <i>alpha</i> representing <i>&alpha;</i></li>
+<li>A double <i>beta</i> representing <i>&beta;</i></li>
+</ul>
+void linearTransformationList(sList *, double, double);
+
+
+
+
+<h2>4.3 &ndash; <a name="4.3">CALENDAR QUEUE</a></h2>
+<h3>4.3.1 &ndash; <a name="4.3.1">freeCalendarQueue</a></h3>
+<p>
+It deallocates the memory for the CalendarQueue
+<p>Input:
+<ul>
+<li> a pointer to the Calendar Queue</li>
+</ul>
+void freeCalendarQueue(sCalendarQueue *cq)
+
+<h3>4.3.2 &ndash; <a name="4.3.2">addCalendarQueue</a></h3>
+<p>
+<ul>
+<li> It creates the CalendarQueue record;</li>
+<li> It creates numberOfBuckets buckets;</li>
+<li> It initializes the min/max arrays, each one of bucketSize size</li>
+</ul>
+<p>Input
+<ul>
+<li> Pointer to the first element of the list;
+<li> The CalendarQueue identifier</li>
+<li> The number of buckets</li>
+<li> The Bucket size</li>
+<li> The precision to compare double values</li>
+</ul>
+<p>
+Output
+<ul>
+<li> The pointer to the first record of the list/Bucket in the CalendarQueue</li>
+</ul>
+sCalendarQueue * addCalendarQueue(char *id, int numberOfBuckets, int bucketSize, double precision)
+
+<h3>4.3.3 &ndash; <a name="4.3.3">addEventToCalendarQueue</a></h3>
+<p>
+It adds an Event to the <b>CalendarQueue</b> by choosing the right bucket.
+<p>Input:
+<ul>
+<li>The pointer to the CalendarQueue record;</li>
+<li>The item to be added</li>
+</ul>
+<p>Output:
+<ul>
+<li>A pointer to sList</li>
+</ul>
+sList * addEventToCalendarQueue(sCalendarQueue *calendarqueue, struct Event event, double precision)
+
+<h3>4.3.4 &ndash; <a name="4.3.4">readCalendarQueue</a></h3>
+<p>
+It prints the content of the CalendarQueue.
+<p>Input:
+<ul>
+<li> The pointer to the first record of the CalendarQueue.</li>
+</ul>
+void readCalendarQueue(sCalendarQueue *pointer)
+
+<h3>4.3.5 &ndash; <a name="4.3.5">DelEventFromCalendarQueue</a></h3>
+<p>
+It deletes the first event (the smallest) from a <b>Calendar Queue</b>. 
+<p>Input:
+<ul>
+<li>A pointer to the <b>Calendar Queue</b></li> 
+<li>A pointer to a <b>sList</b> node representing the event to be deleted</li>
+</ul>
+void DelEventFromCalendarQueue(sCalendarQueue *, sList * );
+
+<h3>4.3.6 &ndash; <a name="4.3.6">linearTransformationCalendarQueue</a></h3>
+<p>
+It applies a time linear factor (<i>&alpha;</i><b>t</b> + <i>&beta;</i>, where <i>&alpha;, </i><i>&beta;</i> &isin; &real;,<i>&alpha;</i> &ge; 0) to a <b>Calendar Queue</b>. 
+<p>Input:
+<ul>
+<li>A pointer to the <b>Calendar Queue</b></li> 
+<li>A double <i>alpha</i> representing <i>&alpha;</i></li>
+<li>A double <i>beta</i> representing <i>&beta;</i></li>
+<li>A double <i>precision</i> representing the precision used to compare double values</li>
+</ul>
+void linearTransformationCalendarQueue(sCalendarQueue *, double , double , double )
+
+<h3>4.4 &ndash; <a name="4.4">Heap</a></h3>
+
+<h3>4.4.1 &ndash; <a name="4.4.1">freeHeap</a></h3>
+
+<p>It deallocates the memory reserved to the heap.
+<p>Input:
+<ul>
+<li>A Pointer to the <b>Heap</b></li>
+</ul>
+void freeHeap(sHeap *heap)
+
+
+<h3>4.4.2 &ndash; <a name="4.4.2">displayHeap</a></h3>
+<p>It displays the <b>Heap</b> content.
+<p>Input:
+<ul>
+<li>A pointer to the <b>Heap</b>
+</ul>
+void displayHeap(sHeap *heap )
+
+
+<h3>4.4.3 &ndash; <a name="4.4.3">initializeHeap</a></h3>
+<p>It initializes the <b>Heap</b>. Specifically, it allocates the memory for a <i>sHeap</i> struct,
+for the <i>K Index</i> components and finally, it allocates the first array of timestamps pointed by <i>Index[0]</i>.
+<p>Input:
+<ul>
+<li>The <i>K</i> and <i>M</i> parameters</li>
+</ul>
+sHeap * initializeHeap(int K, int M)
+
+<h3>4.4.4 &ndash; <a name="4.4.4">addEventToHeap</a></h3>
+<p>
+It adds a timestamp to the Heap.
+<p>Input:
+<ul>
+<li>A Pointer to the <b>Heap</b></li>
+<li>A timestamp;</li>
+<li>The requested precision to compare double values.>/li>
+</ul>
+<p>Output:
+<ul>
+<li>A pointer to the <i>sHEap</i> structure.</li>
+</ul>
+sHeap *addEventToHeap(sHeap *heap, double T, double precision)
+
+<h3>4.4.5 &ndash; <a name="4.4.5">upHeap</a></h3>
+<p>It balances the <b>Heap</b> in case the <i>heapmin</i> property has been violated by a call to <i>addEventToHeap</i> procedure.
+<p>Input:
+<ul>
+<li>The <i>sList</i> pointer including the <b>Heap</b> array. The usage of a <i>sList</i> pointer  is requested to maintain coherence with
+the insertion procedures belonging to the <b>List</b> and <b>CalendarQueue</b> data structures.</li>
+<li>The array size;</li>
+<li>The precision value needed to compare two doubles.</li>
+</ul>
+void upHeap(sList *a, int k, double precision)
+
+
+<h3>4.4.6&ndash; <a name="4.4.6">delEventFromHeap</a></h3>
+void delEventFromHeap(sHeap *heap, double precision, boolean destroy)
+<p>
+It deletes the first timestamp (the smallest) from the <b>Heap</b>'s array. 
+No <i>free</i> operation is performed. The deleted element's position is recovered by the next <i>addEventToHeap</i> procedure.
+<p>Input:
+<ul>
+<li>A pointer to the <b>Heap</b><li> 
+<li>The precision value requested to compare two doubles;</li>
+<li>A boolean flag. Currently, it is ignored for the <b>Heap</b></li>
+</ul>
+
+<h3>4.4.7 &ndash; <a name="4.4.7">downheap</a></h3>
+<p>It balances the <b>Heap</b> in case the <i>heapmin</i> property has been violated by a call to <i>delEventFromHeap</i> procedure.
+<ul>Input:
+<li>The <i>sList</i> pointer including the <b>Heap</b> array. The usage of a <i>sList</i> pointer  is requested to maintain coherence with
+the insertion procedures belonging to the <b>List</b> and <b>CalendarQueue</b> data structures.</li>
+<li>The position of the timestamp in the <b>Heap</b>'s array to be deleted;</li>
+<li>The precision value needed to compare two doubles.</li>
+</ul>
+void downheap(sList *a,int k,  int n, double precision)
+
+<h3>4.4.8 &ndash; <a name="4.4.8">readHeap</a></h3>
+<p>It reads the content of a specific Heap location.
+<p>Input:
+<ul>
+<li>A pointer to the <b>sHeap</b> data structure;</li>
+<li>An integer denoting the element location</li>
+</ul>
+<p>Output:
+<ul>
+<li>The event timestamp corresponding to the location in input</li>
+</ul>
+<p>
+double readHeap(sHeap *heap, int i)
+
+<h3>4.4.9 &ndash; <a name="4.4.9">writeHeap</a></h3>
+<p>It writes a timestamp event to a specific <b>Heap</b> location. The memory is created dynamically in <b>M</b> chunks (this parameter is specified by the user in the command line when
+ the <b>Scheduler</b> is invoked).
+ <p>Input:
+ <ul>
+ <li>A <b>sHeap</b> pointer;</li>
+ <li>An integer representing the location where the timestamp is going to be written in the <b>Heap</b>;</li>
+ <li>A double representing the actual event timestamp.</li>
+ </ul>
+ <p>Output:
+ <ul>
+ <li>An integer representing the success or the failure of the insertion.</li>
+ </ul>
+ <p>int writeHeap(sHeap *heap, int i, double x)
+
+<h3>4.4.10 &ndash; <a name="4.4.10">linearTransformationHeap</a></h3>
+<p>
+It applies a time linear factor (<i>&alpha;</i><b>t</b> + <i>&beta;</i>, where <i>&alpha;, </i><i>&beta;</i> &isin; &real;,<i>&alpha;</i> &ge; 0) to a <b>Heap</b>. 
+<p>Input:
+<ul>
+<li>A pointer to the <b>Heap</b></li> 
+<li>A double <i>alpha</i> representing <i>&alpha;</i></li>
+<li>A double <i>beta</i> representing <i>&beta;</i></li>
+</ul>
+void linearTransformationHeap(Heap *, double , double )
+
+
+<h3>4.5 &ndash; <a name="4.5">Utilities</a></h3>
+<h3>4.5.1 &ndash; <a name="4.5.1">doubleCompare</a></h3>
+<p>
+It compares two double variables.
+<p>Input:
+<ul>
+<li>The two doubles <b>a</b> and <b>b</b> to be compared;</li>
+<li>The precision <i>epsilon</i></li>
+</ul>
+<p>Output:
+<ul>
+<li>0  if a = b</li>
+<li>-1 if a < b</li>
+<li>1  if a > b</li>
+</ul>
+int doubleCompare(double a, double b, double epsilon)
+
+<h3>4.6 &ndash; <a name="4.6">AUXLISTS</a></h3>
+
+<h3>4.6.1 &ndash; <a name="4.6.1">addToAux</a></h3>
+<p>
+It adds an sList * event to a <b>sAuxlists</b>, without any ordering. The policy can be either FIFO or LIFO according to a flag (HEAD or TAIL) passed as parameter.
+<p>Input :
+<ul>
+<li>The pointers to the first and last element;</li>
+<li>The sList pointer to the event to be added</li>
+<li>A flag set to HEAD or TAIL.</li>
+</ul>
+<p>Output:
+<ul>
+<li> The updated pointers to the first and last events in the <b>sAuxlists</b></li>
+<li> An sList pointer to the added event.</b></li>
+</ul>
+sList * addToAux(sAuxlists *aux, sList * new, boolean mode)
+
+<h3>4.6.2 &ndash; <a name="4.6.2">delItemAux</a></h3>
+<p>
+It deletes the first or the last event to in a <b>sAuxlists</b>. The policy can be either "delete from the head" or "delete from the tail" according to a flag (HEAD or TAIL) passed as parameter.</p>
+<p>
+Input:
+<ul> 
+<li>The pointers to the first and last element;</li>
+<li>A flag set to HEAD or TAIL.</li>
+</ul>
+Output:
+<ul>
+<li> An sList pointer to the added event.</b></li>
+<li> The updated pointers to the first and last events in the <b>sAuxlists</b></li>
+</ul>
+sList * delItemAux(sList **, sList **  , boolean );
+
+<h3>4.6.3 &ndash; <a name="4.6.3">createAUXLists</a></h3>
+<p>
+It creates a <b>sAuxlists</b> data structure, initializing also its members.
+
+<p>
+Output
+<ul>
+<li> An sAuxlists pointer to the created <b>sAuxlists</b> data structure</li>
+</ul>
+<p>
+sAuxlists * createAUXLists()
+
+<h3>4.6.4 &ndash; <a name="4.6.4">getHowmanyAux</a></h3>
+<p>
+It returns the number of records in the unsorted <b>sList</b> member of the <b>sAuxlists</b> data structure.
+<p>
+Input
+<ul>
+<li> An sAuxlists pointer to the <b>sAuxlists</b> data structure</li>
+</ul>
+<p>
+Output
+<ul>
+<li> The current value of <i>N1</i> member of <b>sAuxlists</b> data structure</li>
+</ul>
+
+<h3>4.6.5 &ndash; <a name="4.6.5">freeAuxiliaryList</a></h3>
+<p>
+It releases the <b>sAuxlists</b> data structure memory allocation.
+<p>
+Input
+<ul>
+<li> An sAuxlists pointer to the <b>sAuxlists</b> data structure</li>
+</ul>
+
+<h3>4.6.6 &ndash; <a name="4.6.6">RPop</a></h3>
+<p>
+It performs a <i>pop</i> operation on a random basis, following two kind of policies: either the events are equiprobable (flag set to <i>UNIFORM</i>) or depend on a weight (flag set to <i>WEIGHT</i>).
+<p>
+It the extraction is performed on the weight, then the <i>threshold</i> value for each node is re-calculated.
+<p>
+Input
+<ul>
+<li>A <b>sAuxlists</b> pointer to data structure memory;</li>
+<li>A flag to denote the extraction policy, set either to  <i>UNIFORM</i> or to <i>WEIGHT</i>
+<li>A double pointer (passage by reference) to the extracted node.</li>
+</ul>
+<p>
+void RPop(sAuxlists * aux, boolean flag, sList ** node)
+
+
+<h2>5 &ndash; <a name="5">The Scheduler</a></h2>
+<p>The Scheduler is a an example of tool using the scheduler library. 
+
+<h3>5.1 &ndash; <a name="5.1">Usage</a></h3>
+<p>The usage is:<br>
+<b>scheduler</b> Usage: scheduler <i/>data_structure</i> [<i>Index_dimension</i> <i>array_dimension</i>] [<i>number_of_buckets</i> <i>bucket's width</i>]
+<p>Where:
+<ul>
+<li> data_structure is <b>1</b> for LIST, <b>2</b> for HEAP or <b>3</b> for CALENDAR_QUEUE</li>
+<li> for HEAP, you must specify Index dimension and array(slot) dimension <li>
+<li> for CALENDAR_QUEUE, you must specify numberOfBuckets and bucket_width</li>
+</ul>
+<p>
+For example:
+<p>scheduler 1 
+<p>In this case, the scheduler has been invoked using a <b>List</b>(<i>1</i>).
+<p>scheduler 3 10 10
+<p>The scheduler has been invoked using a <b>CalendarQueue</b>(3), using 10 buckets of size 10.
+<p>scheduler 2 4 10
+<p>The scheduler has been invoked using a <b>Heap</b>(2), using an Index of dimension 4, each element of which is pointing to a slot of maximum 10 elements.
+<p>
+Two examples are here presented:
+<ul>
+<li>A scheduler able to create events and store them on a <b>List</b>, a <b>Heap</b> or a <b>Calendar Queue</b></li>
+<li>An example of the Auxiliary list usage.</li>
+</ul>
+
+<h3>5.2 &ndash; <a name="5.2">Using the Calendar Event data structure </a></h3>
+
+
+<h4>5.2.1 &ndash; <a name="5.2.1">Validation and variables declaration</a></h3>
+<p>The Scheduler performs initially different steps:
+<ul>
+<li>It declares a pointer to <i>sCalendarEvent</i>;</li>
+<li>It performs a validation of the input parameters and load some embedded parameters (among which, for example, the precision <i>epsilon</i>). It returns a pointer to the <i>sParameters</i> structure;</li>
+<li>It declares an array of <i>sList</i> elements called <b>nodes</b> used to input some timestamps and a further <i>sList</i> element called <b>out</b> that will be used later for a <i>pop</i> operation. 
+</ul>
+<p>
+int main(int argc, char *argv[])<br>
+{<br>
+sCalendarEvent *ce;<br>
+sParameters *pars = validate(argc, argv);<br>
+sList *nodes[10], *out;<br>
+ce = createCE(pars);<br>
+<p>
+The <i>createCE</i> procedure is invoked passing the <i>pars</i> parameters input. It returns a pointer to the <b>CalendarEvent</b>, allocating the memory for the <b>CalendarEvent</b> and 
+the corresponding data structure (<b>List</b>, <b>Heap</b>,
+or <b>CalendarQueue</b>).
+
+<h4>5.2.2 &ndash; <a name="5.2.2">Adding events to the CalendarEvent</a></h3>
+<p>
+It is necessary to invoke the <i>addEvent</i> procedure, providing in input:
+<ul>
+<li>A pointer to the CalendarEvent</li>
+<li>a pointer to a sList structure including a timestamp (this can be achieved by using the <b>createEvent</b> procedure).</li>
+</ul>
+<p>addEvent returns a <i>sList</i> pointer including the timestamp just added and - when using a <b>List</b> or a <b>CalendarList</b> - a valid <i>next</i> and <i>previous</i> pointers.
+<p>Next, it is convenient to print the <b>CalendarEvent</b> content to verify that the <i>addEvent</i> operation has completed successfully.
+<p>
+nodes[0] = addEvent(ce, createEvent(40.0)); 	displayCE(ce);<br>
+<p>
+In the same fashion, it is possible to add more timestamps:
+<p>
+nodes[1] = addEvent(ce, createEvent(30.0));	displayCE(ce);<br>
+nodes[2] = addEvent(ce, createEvent(10.0));	displayCE(ce);<br>
+<p>
+which adds other two timestamps (whose values are respectively 30 and 10) to the <b>CalendarEvent</b>.
+
+<h4>5.2.3 &ndash; <a name="5.2.3">Destroy, add and pop events</a></h3>
+<p>The following operations performs the following:
+<ul>
+<li>Destroy (a <i>free</i> operation is performed since the <i>DESTROY</i> flag is used) a timestamp from the <b>CalendarEvent</b>;</li>
+<li>Add two new timestamps (with timestamps set respectively to 12 and 5);</li>
+<li>Destroy (performing actually a <i>remove</i> operation, that is without performing a <i>free</i> operation since the <i>REMOVE</i> flag is used) of <i>nodes[3]</i></li>
+<li>Invoke the <i>popEvent</i> procedure to extract the first (and smallest) timestamp;</li>
+<li>Add another timestamp.</li>
+</ul>
+<p>
+destroyEvent(ce, nodes[0], DESTROY);displayCE(ce);<br>
+nodes[3] = addEvent(ce, createEvent(12.0));	displayCE(ce);<br>
+nodes[4] = addEvent(ce, createEvent(5.0));	displayCE(ce);<br>
+destroyEvent(ce, nodes[3], REMOVE);displayCE(ce);<br>
+popEvent(ce, &out);displayCE(ce);<br>
+nodes[5] = addEvent(ce, createEvent(1.0));displayCE(ce);<br>
+
+<p>
+The nodes that were extracted (through a "pop" operation) or removed are re-inserted:
+<p>
+nodes[3] = addEvent(ce, nodes[3]);	displayCE(ce); <br>
+nodes[0] = addEvent(ce, nodes[0]);	displayCE(ce); <br>
+out = addEvent(ce, out);	displayCE(ce); <br>
+
+<h4>5.2.4 &ndash; <a name="5.2.4">Deallocating the memory</a></h3>
+<p>
+Finally, the <b>CalendarEvent</b> data structure is released. The <i>nodes</i> and <i>out</i> variables must released as well by the user.
+<p>
+freeCalendarEvent(ce);<br>
+}
+
+<h3>5.3 &ndash; <a name="5.3">Using the Auxiliary list</a></h3>
+<p>
+Sometimes, it is useful to store temporarily events that cannot be placed in the <b>Calendar Event</b>. In this case, it is possible to use the Auxiliary list, which includes two pointers
+to a sList data structure, respectively to the first and the last element. <i>Pop</i> operations can be performed in different ways, either from the top or from the end of the list, or randomly - either
+uniformly (all the events are equiprobable) or according to a weight associated to the event. The code performs the following:
+
+<h4>5.3.1 &ndash; <a name="5.3.1">Initialization</a></h4>
+<p>
+int demoDLL()<br>
+{<br>
+	sList *out1, *out2, *out3;<br><br><br>
+
+
+	out1 = (sList *)malloc(sizeof(sList));<br>
+	out2 = (sList *)malloc(sizeof(sList));<br>
+	out3 = (sList *)malloc(sizeof(sList));<br>
+<br>
+<br>
+	sList *node = NULL;<br>
+	sAuxlists * aux = createAUXLists();<br>
+<p> Three sList * variables <i>out1</i>, <i>out2</i> and <i>out3</i> are created. The <b>sAuxlists</b> data struture is istantiated.
+
+<h4>5.3.2 &ndash; <a name="5.3.2">Adding the events</a></h4>
+<p>Six new events are created. For each one, the <i>timestamp</i> and the <i>weight</i> are passed as arguments to <i>createEventW</i> procedure. Correspondgly, the auxiliary list's content is displayed each time by 
+using <i>readListW</i> procedure.
+<p>
+	node = addToAux(aux, createEventW(12, 2), TAIL);readListW(aux->auxF1);<br>
+	node = addToAux(aux, createEventW(31, 3), TAIL);readListW(aux->auxF1);<br>
+	node = addToAux(aux, createEventW(7, 1), TAIL);readListW(aux->auxF1);<br>
+	node = addToAux(aux, createEventW(19, 4), HEAD);readListW(aux->auxF1);<br>
+	node = addToAux(aux, createEventW(150, 5), TAIL);readListW(aux->auxF1);<br>
+	node = addToAux(aux, createEventW(987, 2), HEAD);readListW(aux->auxF1);<br>
+	
+<h4>5.3.3 &ndash; <a name="5.3.3">Removing the events by the tail or the head of the list</a></h4>
+<p>Two elements are removed from the list, respectively the last (TAIL) and the first (HEAD). If the first element is removed, the <i>delItemAux</i> re-calculates the thresholds for 
+each component of the list.
+<p>
+	readEvent( delItemAux(aux, TAIL));printf("\n");readListW(aux->auxF1);<br>
+	readEvent( delItemAux(aux, HEAD));printf("\n");readListW(aux->auxF1);<br>
+
+<h4>5.3.4 &ndash; <a name="5.3.4">Random pop operation of the events by uniform or weighted policy</a></h4>	
+<p>Three elements of the list are extracted by using a <i>pop</i> operation exploiting either the <i>weight</i> attribute (each element can be extracted according to a probability depending on the weight) or simply extracting randomly the event
+ (being N the events in the list, the probability to extracted the <i>i-th</i> is <i>1/N</i>).
+ <p>
+	RPop(aux, WEIGHT, &out1);readListW(aux->auxF1);<br>
+	RPop(aux, WEIGHT, &out2);readListW(aux->auxF1);<br>
+	RPop(aux, UNIFORM, &out3);readListW(aux->auxF1);<br>
+
+<h4>5.3.5 &ndash; <a name="5.3.5">Release the memory</a></h4>	
+<p>All the data structures are released.
+<p>	
+	free(out1);<br>
+	free(out2);<br>
+	free(out3);<br>
+<br>
+	freeAuxiliaryList(aux);<br>
+<br>
+	return 1;
+
+
+<P CLASS="footer">
+Last update:
+Thu September 29 18:04:30 BRT 2016
+</P>
+
+
+
+</body>
+
+</html>
+

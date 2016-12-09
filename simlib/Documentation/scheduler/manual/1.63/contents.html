@@ -1,0 +1,244 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<HTML>
+
+
+<HEAD>
+<TITLE>Scheduler 1.61 Reference Manual - contents</TITLE>
+<LINK REL="stylesheet" TYPE="text/css" HREF="../../scheduler.css">
+<LINK REL="stylesheet" TYPE="text/css" HREF="../index.css">
+<META HTTP-EQUIV="content-type" CONTENT="text/html; charset=iso-8859-1">
+</HEAD>
+
+<BODY>
+
+
+
+
+
+<DIV CLASS="menubar">
+<A HREF="manual.html">start</A>
+&middot;
+<A HREF="#contents">contents</A>
+&middot;
+<A HREF="#index">index</A>
+</DIV>
+
+<P>
+
+
+<H2><A NAME="contents">Contents</A></H2>
+<UL CLASS="contents menubar">
+<LI><A HREF="manual.html">1 &ndash; Introduction</A><li>
+<P>
+<LI><A HREF="manual.html#2">2 &ndash; Basic Concepts</A></li>
+<UL>
+<LI><A HREF="manual.html#2.1">2.1 &ndash; DEFINITIONS, ACRONYMS AND ABBREVIATIONS</A></li>
+<LI><A HREF="manual.html#2.2">2.2 &ndash; DATA STRUCTURES OVERVIEW</A></li>
+<ul>
+<LI><A HREF="manual.html#2.2.1">2.2.1 &ndash; LIST</A></li>
+<LI><A HREF="manual.html#2.2.2">2.2.2 &ndash; HEAP</A></li>
+<LI><A HREF="manual.html#2.2.3">2.2.3 &ndash; CALENDAR QUEUE</A></li>
+<LI><A HREF="manual.html#2.2.4">2.2.4 &ndash; CALENDAR EVENT</A></li>
+<LI><A HREF="manual.html#2.2.5">2.2.5 &ndash; PARAMETERS</A></li>
+<LI><A HREF="manual.html#2.2.6">2.2.6 &ndash; AUXLISTS</A></li>
+</ul>
+</ul>
+
+
+
+<p>
+<LI><A HREF="manual.html#3">3 &ndash; LIBRARY ALGORITHMS OVERVIEW</A></li>
+<ul>
+<LI><A HREF="manual.html#3.1">3.1 &ndash; CALENDAR EVENT CREATION</A></li>
+<LI><A HREF="manual.html#3.2">3.2 &ndash; POPULATING THE CALENDAR EVENT</A></li>
+<LI><A HREF="manual.html#3.3">3.3 &ndash; DELETING OR DESTROYING THE CALENDAR EVENT ELEMENTS</A>
+<LI><A HREF="manual.html#3.4">3.4 &ndash; CALENDAR EVENT DESTRUCTION</A>
+<LI><A HREF="manual.html#3.5">3.5 &ndash; POP OPERATION</A>
+</ul>
+
+<P>
+<LI><A HREF="manual.html#4">4 &ndash; PROCEDURES DESCRIPTION</A>
+<UL>
+<LI><A HREF="manual.html#4.1">4.1 &ndash; CALENDAR EVENT</A>
+<ul>
+<LI><A HREF="manual.html#4.1.1">4.1.1 &ndash; createCE</A>
+<LI><A HREF="manual.html#4.1.2">4.1.2 &ndash; displayCE</A>
+<LI><A HREF="manual.html#4.1.3">4.1.3 &ndash; addEvent</A>
+<LI><A HREF="manual.html#4.1.4">4.1.4 &ndash; popEvent</A>
+<LI><A HREF="manual.html#4.1.5">4.1.5 &ndash; freeCalendarEvent</A>
+<LI><A HREF="manual.html#4.1.6">4.1.6 &ndash; createEvent</A>
+<LI><A HREF="manual.html#4.1.7">4.1.7 &ndash; freeEvent</A>
+<LI><A HREF="manual.html#4.1.8">4.1.8 &ndash; isCEEmpty</A>
+<LI><A HREF="manual.html#4.1.9">4.1.9 &ndash; getCEFirst</A>
+<LI><A HREF="manual.html#4.1.10">4.1.10 &ndash; setEventTimestamp</A>
+<LI><A HREF="manual.html#4.1.11">4.1.11 &ndash; getEventTimestamp</A>
+<LI><A HREF="manual.html#4.1.12">4.1.12 &ndash; ceCurrentCapacity</A>
+<LI><A HREF="manual.html#4.1.13">4.1.13 &ndash; createEventW</A>
+<LI><A HREF="manual.html#4.1.14">4.1.14 &ndash; destroyEvent</A>
+<LI><A HREF="manual.html#4.1.15">4.1.15 &ndash; linearTimeTransform</A>
+</ul>
+</ul>
+
+<ul>
+<LI><A HREF="manual.html#4.2">4.2 &ndash; LIST</A>
+<ul>
+<LI><A HREF="manual.html#4.2.1">4.2.1 &ndash; delEventFromList</A>
+<LI><A HREF="manual.html#4.2.2">4.2.2 &ndash; readList</A>
+<LI><A HREF="manual.html#4.2.3">4.2.3 &ndash; freeList</A>
+<LI><A HREF="manual.html#4.2.4">4.2.4 &ndash; addEventToList</A>
+<LI><A HREF="manual.html#4.2.4">4.2.5 &ndash; linearTransformationList</A>
+</ul>
+</ul>
+
+
+<ul>
+<LI><A HREF="manual.html#4.3">4.3 &ndash; CALENDAR QUEUE</A>
+<ul>
+<LI><A HREF="manual.html#4.3.1">4.3.1 &ndash; freeCalendarQueue</A>
+<LI><A HREF="manual.html#4.3.2">4.3.2 &ndash; addCalendarQueue</A>
+<LI><A HREF="manual.html#4.3.3">4.3.3 &ndash; addEventToCalendarQueue</A>
+<LI><A HREF="manual.html#4.3.4">4.3.4 &ndash; readCalendarQueue</A>
+<LI><A HREF="manual.html#4.3.5">4.3.5 &ndash; DelEventFromCalendarQueue</A>
+<LI><A HREF="manual.html#4.3.6">4.3.6 &ndash; linearTransformationCalendarQueue</A>
+</ul>
+</ul>
+
+<ul>
+<LI><A HREF="manual.html#4.4">4.4 &ndash; Heap</A>
+<ul>
+<LI><A HREF="manual.html#4.4.1">4.4.1 &ndash; freeHeap</A>
+<LI><A HREF="manual.html#4.4.2">4.4.2 &ndash; displayHeap</A>
+<LI><A HREF="manual.html#4.4.3">4.4.3 &ndash; initializeHeap</A>
+<LI><A HREF="manual.html#4.4.4">4.4.4 &ndash; addEventToHeap</A><LI>
+<LI><A HREF="manual.html#4.4.5">4.4.5 &ndash; upHeap</A>
+<LI><A HREF="manual.html#4.4.6">4.4.6 &ndash; delEventFromHeap</A>
+<LI><A HREF="manual.html#4.4.7">4.4.7 &ndash; downheap</A>
+<LI><A HREF="manual.html#4.4.8">4.4.8 &ndash; readHeap</A>
+<LI><A HREF="manual.html#4.4.9">4.4.9 &ndash; writeHeap</A>
+<LI><A HREF="manual.html#4.4.10">4.4.10 &ndash; linearTransformationHeap</A>
+</ul>
+</ul>
+
+
+<ul>
+<LI><A HREF="manual.html#4.5">4.5 &ndash; Utilities</A>
+<ul>
+<LI><A HREF="manual.html#4.5.1">4.5.1 &ndash; doubleCompare</A>
+</UL>
+</ul>
+
+<ul>
+<LI><A HREF="manual.html#4.6">4.6 &ndash; sAuxlists</A>
+<ul>
+<LI><A HREF="manual.html#4.6.1">4.6.1 &ndash; addToAux</A>
+<LI><A HREF="manual.html#4.6.2">4.6.2 &ndash; delItemAux</A>
+<LI><A HREF="manual.html#4.6.3">4.6.3 &ndash; createAUXLists</A>
+<LI><A HREF="manual.html#4.6.4">4.6.4 &ndash; getHowmanyAux</A>
+<LI><A HREF="manual.html#4.6.5">4.6.5 &ndash; freeAuxiliaryList</A>
+<LI><A HREF="manual.html#4.6.6">4.6.6 &ndash; RPop</A>
+</UL>
+</ul>
+
+<P>
+<LI><A HREF="manual.html#5">5 &ndash; The Scheduler</A>
+<ul>
+<UL>
+<LI><A HREF="manual.html#5.1">5.1 &ndash; Usage</A>
+<LI><A HREF="manual.html#5.2">5.2 &ndash; Using the Calendar Event data structure</A>
+<ul>
+<LI><A HREF="manual.html#5.2.1">5.2.1 &ndash; Validation and variables declaration</A>
+<LI><A HREF="manual.html#5.2.2">5.2.2 &ndash; Adding events to the CalendarEvent</A>
+<LI><A HREF="manual.html#5.2.3">5.2.3 &ndash; Destroy, add and pop events</A>
+<LI><A HREF="manual.html#5.2.4">5.2.4 &ndash; Deallocating the memory</A>
+</ul>
+<LI><A HREF="manual.html#5.3">5.3 &ndash; Using the Auxiliary list</A>
+<ul>
+<LI><A HREF="manual.html#5.3.1">5.3.1 &ndash; Initialization</A>
+<LI><A HREF="manual.html#5.3.2">5.3.2 &ndash; Adding the events</A>
+<LI><A HREF="manual.html#5.3.3">5.3.3 &ndash; Removing the events by the tail or the head of the list</A>
+<LI><A HREF="manual.html#5.3.4">5.3.4 &ndash; Random pop operation of the events by uniform or weighted policy</A>
+<LI><A HREF="manual.html#5.3.5">5.3.5 &ndash; Release the memory</A>
+
+</UL>
+
+
+<H2><A NAME="index">Index</A></H2>
+<TABLE CLASS="menubar" WIDTH="100%">
+<TR>
+<TD>
+<H3><A NAME="procedures">library procedures</A></H3>
+<P>
+
+<A HREF="manual.html#4.3.2">addCalendarQueue</A><BR>
+<A HREF="manual.html#4.1.3">addEvent</A><BR>
+<A HREF="manual.html#4.3.3">addEventToCalendarQueue</A><BR>
+<A HREF="manual.html#4.4.4">addEventToHeap</A><BR>
+<A HREF="manual.html#4.2.4">addEventToList</A><BR>
+<A HREF="manual.html#4.6.1">addToAux</A><BR>
+
+
+<A HREF="manual.html#4.1.12">ceCurrentCapacity</A><BR>
+<A HREF="manual.html#4.6.3">createAUXLists</A><BR>
+<A HREF="manual.html#4.1.1">createCE</A><BR>
+<A HREF="manual.html#4.1.6">createEventW</A><BR>
+<A HREF="manual.html#4.1.13">createEvent</A><BR>
+
+<A HREF="manual.html#4.3.5">delEventFromCalendarQueue</A><BR>
+<A HREF="manual.html#4.4.6">delEventFromHeap</A><BR>
+<A HREF="manual.html#4.2.1">delEventFromList</A><BR>
+<A HREF="manual.html#4.6.2">delItemAux</A><BR>
+<A HREF="manual.html#4.1.14">destroyEvent</A><BR>
+<A HREF="manual.html#4.1.2">displayCE</A><BR>
+<A HREF="manual.html#4.4.3">displayHeap</A><BR>
+<A HREF="manual.html#4.5.1">doubleCompare</A><BR>
+<A HREF="manual.html#4.4.7">downheap</A><BR>
+
+
+<A HREF="manual.html#4.6.5">freeAuxiliaryList</A><BR>
+<A HREF="manual.html#4.1.5">freeCalendarEvent</A><BR>
+<A HREF="manual.html#4.3.1">freeCalendarQueue</A><BR>
+<A HREF="manual.html#4.1.7">freeEvent</A><BR>
+<A HREF="manual.html#4.4.1">freeHeap</A><BR>
+<A HREF="manual.html#4.2.3">freeList</A><BR>
+
+<A HREF="manual.html#4.1.9">getCEFirst</A><BR>
+<A HREF="manual.html#4.1.11">getEventTimestamp</A><BR>
+<A HREF="manual.html#4.6.4">getHowmanyAux</A><BR>
+
+<A HREF="manual.html#4.4.3">initializeHeap</A><BR>
+<A HREF="manual.html#4.1.8">isCEEmpty</A><BR>
+
+<A HREF="manual.html#4.1.15">linearTimeTransform</A><BR>
+<A HREF="manual.html#4.3.6">linearTransformationCalendarQueue</A><BR>
+<A HREF="manual.html#4.4.10">linearTransformationHeap</A><BR>
+<A HREF="manual.html#4.2.5">linearTransformationList</A><BR>
+
+
+
+<A HREF="manual.html#4.1.4">popEvent</A><BR>
+
+<A HREF="manual.html#4.3.4">readCalendarQueue</A><BR>
+<A HREF="manual.html#4.4.8">readHeap</A><BR>
+<A HREF="manual.html#4.2.2">readList</A><BR>
+<A HREF="manual.html#4.6.6">rPop</A><BR>
+
+<A HREF="manual.html#4.1.10">setEventTimestamp</A><BR>
+
+<A HREF="manual.html#4.4.5">upHeap</A><BR>
+
+<A HREF="manual.html#4.4.9">writeHeap</A><BR>
+
+</TD>
+</TR>
+</TABLE>
+
+<P CLASS="footer">
+Last update:
+Thu September 29 18:09:27 BRT 2016
+</P>
+
+
+</BODY>
+
+
+</HTML>

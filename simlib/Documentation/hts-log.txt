@@ -1,0 +1,11 @@
+HTTrack3.48-22+htsswf+htsjava launched on Fri, 10 Jun 2016 22:17:06 at https://www.lua.org/manual/5.3/manual.html +*.png +*.gif +*.jpg +*.jpeg +*.css +*.js -ad.doubleclick.net/* -mime:application/foobar
+(winhttrack -qwC2%Ps2u1%s%uN0%I0p3DaK0H0%kf2A25000%f#f -F "Mozilla/4.5 (compatible; HTTrack 3.0x; Windows 98)" -%F "<!-- Mirrored from %s%s by HTTrack Website Copier/3.x [XR&CO'2014], %s -->" -%l "en, *" https://www.lua.org/manual/5.3/manual.html -O1 "C:\My Web Sites\Test" +*.png +*.gif +*.jpg +*.jpeg +*.css +*.js -ad.doubleclick.net/* -mime:application/foobar )
+
+Information, Warnings and Errors reported for this mirror:
+note:	the hts-log.txt file, and hts-cache folder, may contain sensitive information,
+	such as username/password authentication for websites mirrored in this project
+	do not share these files/folders if you want these information to remain private
+
+
+HTTrack Website Copier/3.48-22 mirror complete in 10 seconds : 8 links scanned, 7 files written (362328 bytes overall) [363980 bytes received at 36398 bytes/sec]
+(No errors, 0 warnings, 0 messages)

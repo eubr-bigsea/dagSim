@@ -1,0 +1,895 @@
+\section{schedulerLibrary} 
+
+\subsection{Scheduler Library Reference Manual}
+The Scheduler Library is a collection of data structures and C-language procedures to implement a scheduler. 
+Three different data structures (List, Heap and Calendar Queue) are also provided in order to grant the maximum flexibility and performance according to the number of the scheduled events.
+This section describes:
+\begin{itemize}
+\item	The CalendarEvent, List, Heap, Calendar Queue and Auxiliary data structures;
+\item	The procedures creating, populating, displaying and deleting members of the above data structures;
+\item	Two examples of how this library can be used.
+
+\end{itemize}
+
+The Scheduler library is implemented in <em>C</em> language. It has been tested under \textit{Windows}, \textit{MacOS} and \textit{Ubuntu Linux} environments
+using \textit{gcc} compiler.
+This section include a few examples to show how the library can be deployed.
+
+\paragraph{A note for the developers}
+It is possible to enable a trace of the execution by setting the variable CE\_DEBUG to $1$
+in the file called \textit{utilities.h} and recompiling again.
+\subsubsection{Basic Concepts}
+
+
+This section describes the basic concepts of the library.
+
+\paragraph{Definitions}
+The following is a list of definitions for of the data structures used by the library:
+
+\begin{table}[]
+\centering
+\caption{Data Structures}
+\label{datastructures}
+\begin{tabular}{|l|m{9cm}|}
+\hline
+Item           & Description                                                                                     \\\hline
+sCalendarEvent & This is the main data structure. It can be instantiated as a sList, a sHeap or a sCalendarQueue \\\hline
+sHeap          & It corresponds to a heap data structure                                                         \\\hline
+sList          & It corresponds to a double linked list data structure                                           \\\hline
+sCalendarQueue & It corresponds to a CalendarQueue data structure                                                \\\hline
+sParameters    & It corresponds to a set of parameters used by the procedures                                    \\\hline
+sAuxlists      & It includes the pointers (first and last event) to an unsorted sList data structure \\\hline          
+\end{tabular}
+\end{table}
+
+\paragraph{Data structures overview}
+This section explains how the data structures used by the library are defined. For each of the below data structures, a C language variable type is available.
+paragraph{List}
+The \textit{sList} data structure consists of the following:
+\begin{itemize}
+\item A string \textit{id} representing a \textit{sList} identifier;
+\item A double \textit{timestamp} ;
+\item A \textit{next sList} pointer referring to the next node (set to NULL if the node is the last in the \textit{sList});
+\item A \textit{previous sList} pointer referring to the previous node (set to NULL if the node is the first in the \textit{sList});
+The following members are used by the Auxiliary list only:
+\begin{itemize}
+\item An integer \textit{W} representing a weight associated to the event.
+\item An integer \textit{Threshold} representing the summation of the previous members' weights. This field is automatically updated every time there is an \textit{insert} operation from the \textit{head}
+of the list.
+\end{itemize}
+\end{itemize}
+
+\paragraph{Heap}
+
+The \textit{sHeap} data structure consists of the following:
+\begin{itemize}
+\item	A string \textit{id} representing a Heap identifier;
+\item	Aan array of pointers \textit{Index}. Each element of this array points to one array of timestamps referring to events. These arrays are allocated dinamically.
+\item	An integer \textit{K} denoting the dimension of the \textit{Index} array;
+\item 	An integer \textit{M} denoting the size of the array of doubles to which \textit{Index} cells point to.
+\end{itemize}
+
+\paragraph{Calendar Queue}
+The \textit{sCalendarQueue} data structure consists of the following:
+\begin{itemize}
+\item	A string \textit{id} representing a Calendar Queue identifier;
+\item	A double pointer of sList type called \textit{buckets}. Each element of this list is a list itself;
+\item	An integer \textit{numberOfBuckets};
+\item	An integer called \textit{bucketSize};
+\item	A \textit{min }and a \textit{max} double arrays representing the lower and upper boundaries of CALENDAR QUEUE.
+\end{itemize}
+
+\paragraph{Calendar Event}
+The \textit{Calendar Event}  data structure consists of the following:
+\begin{itemize}	
+\item A string id representing an a Calendar Event identifier;
+\item	An integer \textit{currentChoice} representing one of the three data structures used (\textit{List}, \textit{Heap} or \textit{CalendarQueue});
+\item	A double \textit{precision} to be used to compare double values;
+\item A double \textit{howmany} referring to the current number of events included in the calendar event data structure;
+\item	A union \textit{datastructures} including a \textit{sList}, a \textit{sHeap} and a \textit{CalendarQueue}. Only one of these data structures can be active at one time.
+\end{itemize}	
+
+The variable type for this data structure is called sCalendarEvent.
+
+\paragraph{Parameters}
+The \textit{sParameters}  data structure consists of the following:
+\begin{itemize}
+\item An integer \textit{choice} representing one of \textit{List}, \textit{Heap} or \textit{Calendar Queue};
+\item A double \textit{epsilon}, used when comparing two doubles;
+\item An integer \textit{numberOfBuckets} used to represent the number of \textit{Buckets} in a \textit{Calendar Queue};
+\item An integer \textit{bucket\_width} used to represent the width of a \textit{bucket}in a \textit{Calendar Queue};
+\item An integer \textit{howmany} used to denote the maximum number of events (i.e. timestamps);
+\item An integer \textit{K} indicating the width of the \textit{Heap} memory array \textit{Index};
+\item An integer \textit{M} indicating the number of slots associated to each member of the heap memory array.
+\end{itemize}
+
+\paragraph{Auxiliary Lists}
+ This data structure includes an auxiliary list consisting of unsorted events, typically processed starting from the head or the tail of the list.
+The \textit{AUXLISTS} data structure consists of the following:
+\begin{itemize}
+\item	A double \textit{N1} representing the total number of events in the first auxiliary list;
+\item	A double pointer of sList type called \textit{auxF1} and \textit{auxL1} pointing respectively to the first and to the last event of the \textit{sList}.
+\end{itemize}
+
+
+\subsection{Library Algorithms overview}
+
+This section provides a general introduction to the logic exploited by the algorithms creating, populating and destroying the \textit{Calendar Event}.
+
+\paragraph{CALENDAR EVENT CREATION}
+The \textit{CalendarEvent} data structure is created by the \textit{createCE} procedure. Since only one of \textit{List}, \textit{Heap} or \textit{CalendarQueue} data structure can be chosen, the following is performed:
+\begin{itemize}
+\item    It allocates the memory for the \textit{CalendarEvent} data structure.
+\item	It sets the pointer to the \textit{List} to NULL or
+\item	It initializes the \textit{Heap} data structure by using the \textit{initializeHeap} procedure or
+\item	It initializes the \textit{Calendar Queue} data structure by calling the \textit{addCalendarQueue}  procedure.
+\end{itemize}
+
+
+
+\subsubsection{Populating the Calendar Event}
+
+It is possible to add a new event (i.e. adding a new \textit{timestamp}) by using the addEvent procedure, which in turn calls one of \textit{addEventToList}, \textit{addEventToHeap} 
+or \textit{addEventToCalendarQueue}.
+
+\subsubsection{Deleteing or destroying the Calendar Events elements}
+
+An event can be deleted (i.e. it is disconnected by the \textit{Calendar Event} and made available) or destroyed (the allocated memory for the event is freed). 
+The same procedure is used for both the operations, by using a \textit{boolean} value (0/\textit{REMOVE} for the removal and 1/\textit{DESTROY} for the destruction)
+ passed to the \textit{destroyEvent} procedure. Depending on the specific \textit{Calend Event} data structure,\textit{destroyEvent} calls in turn 
+ \textit{delEventFromList}, \textit{delEventFromHeap} and \textit{delEventFromCalendarQueue}.
+
+\subsubsection{Calendar Event destruction}
+
+The \textit{Calendar Event} memory deallocation corresponds to two operations:
+\begin{itemize}
+\item	Deallocation of the specific data structure used;
+\item	Deallocation of the Calendar Event  data structure as a whole.
+\end{itemize}
+
+This is achieved by calling the \textit{freeCalendarEvent} procedure, which in turns involkes one of \textit{freeList}, \textit{freeHeap} or \textit{freeCalendarQueue}.
+
+\subsubsection{Pop Event}
+	
+ The \textit{pop} operation makes available the top (the smallest) event(i.e.timestamp) included in the \textit{Calendar Event}. According to the specific data structure, the following is performed by the \textit{popEvent} procedure:
+ \begin{itemize}
+\item	List: the first element is returned and the pointer to the first Event in the List is updated;
+\item	Heap: the first element of the array is returned. The data structure is balanced if necessary (to preserve the Heap property);
+\item	CalendarQueue: the popEventFromCalendarQueue procedure looks for the first non-empty bucket and it returns its first element. Then, the pointer to the first element of the bucket is updated.
+\item    Auxiliary list (unsorted): in this case, it is possible to perform a pop operation in different ways: 
+  \begin{itemize}
+	\item Extract the first element of the list from the \textit{head} or from the \textit{tail} by using \textit{delItemAux} procedure. The extract policy is denoted by a flag with value \textit{HEAD} or \textit{TAIL};
+	\item Extract an element from the list randomly with \textit{RPop} procedure by specifying a flag set to:
+		\begin{itemize}
+			\item \textit{UNIFORM}, meaning that the element is extracted randomly from the list (all the members of the list are equiprobable);
+			\item \textit{WEIGHT}, meaning that the element is extracted randomly from the list taking an account a weight associated to it(the probability to extract a specific element of the list grows proportionally to the element's weight)
+		\end{itemize}
+  \end{itemize}
+
+\end{itemize}
+
+
+\subsubsection{PROCEDURES DESCRIPTION}
+In the following, the procedures used are described in more detailed according to the data structure that uses them.
+	
+\paragraph{CALENDAR EVENT}
+
+
+\subparagraph{createCE}
+
+It creates a \textit{CalendarEvent} data structure, which can be one of \textit{List}, \textit{Heap} or \textit{CalendarQueue}. According to the user choice, the corresponding data structure is created (i.e. the memory is allocated).
+
+Input: 
+\begin{itemize}
+\item A Parameter structure including the parameters for the CalendarEvent
+\end{itemize}
+
+Output:
+\begin{itemize}
+\item A pointer to the CalendarEvent data structure
+\end{itemize}
+sCalendarEvent * createCE(struct Parameters *pars )
+
+\subparagraph{displayCE}
+	 
+It displays the content of the CalendarEvent data structure
+Input
+\begin{itemize}
+\item A pointer to the CalendarEvent data structure
+\end{itemize}
+void displayCE(sCalendarEvent *pointer)
+
+\subparagraph{addEvent}
+
+It adds an event on the CalendarEvent data structure.
+
+Input:
+\begin{itemize}
+ \item A pointer to the CalendarEvent;
+ \item A pointer to a sList node including a timestamp
+\end{itemize}
+Output:
+\begin{itemize}
+\item An updated pointer to the sList node 
+\end{itemize}
+sList * addEvent(sCalendarEvent *ce, sList *)
+
+\textit{Note}: it is possible to add a node that was previously removed (or extracted via a "pop" operation).
+It is not possible adding a node that was early destroyed (in this case, a warning message is issued).
+
+\subparagraph{popEvent}
+
+It performs a \textit{pop} operation on the CalendarEvent (\textit{List}, \textit{Heap} or \textit{CalendarQueue}) data structure.
+
+Input
+\begin{itemize}
+\item A pointer to a Calendar Event
+\item A \textit{sList} double pointer (passage by reference) representing the extracted event, which includes the smallest timestamp in the \textit{CalendarEvent} 
+\end{itemize}
+void popEvent(sCalendarEvent *ce, sList **)
+
+
+\subparagraph{freeCalendarEvent}
+
+It releases all the data structures used (list, Heap or Calendar Queue)
+
+Input: 
+\begin{itemize}	
+\item a pointer to the CalendarEvent structure
+\end{itemize}
+void freeCalendarEvent(sCalendarEvent *ce)
+
+\subparagraph{createEventW}
+
+It creates a sList node given a timestamp and a weight.
+Input
+\begin{itemize}
+\item A timestamp
+\end{itemize}
+Output:
+\begin{itemize}
+\item A pointer to the new sList element.
+\end{itemize}
+sList * createEventW(double timestamp, int weight)
+
+\subparagraph{freeEvent}
+
+It performs a free() operation on a given sList pointer.
+
+Input
+\begin{itemize}
+\item A double pointer (passage by reference) to sList data structure
+\end{itemize}
+void freeEvent(sList ** node)
+
+
+\subparagraph{isCEEmpty}
+
+It returns 1 (true) if the Calendar Event data structure is empty, 0 (true) otherwise.
+Output
+\begin{itemize}
+\item A boolean value
+\end{itemize}
+boolean isCEEmpty(sCalendarEvent *ce)
+
+\subparagraph{getCEFirst}
+
+It returns the first event of the Calendar Event.
+
+Input
+\begin{itemize}
+\item A pointer to a Calendar Event data structure
+\end{itemize}
+
+Output
+\begin{itemize}
+\item A pointer to a sList data structure
+\end{itemize}
+sList * getCEFirst(sCalendarEvent *ce)
+
+\subparagraph{setEventTimestamp}
+
+It sets the timestamp for an existing event. For example, you may perform a "pop" operation, set a new timestamp for the resulting event and add the event again to the
+CalendarEvent data structure.
+
+Input
+\begin{itemize}
+\item A pointer to a Calendar Event data structure
+\item A double timestamp
+\end{itemize}
+Output:
+\begin{itemize}
+\item A pointer to a sList data structure including the new timestamp.
+\end{itemize}
+sList * setEventTimestamp(sList *node, double timestamp)
+
+
+
+
+\subparagraph{getEventTimestamp}
+
+It returns the timestamp value for a given pointer to sList data structure.
+Input
+\begin{itemize}
+\item A pointer to a sList data structure
+\end{itemize}
+Output
+\begin{itemize}
+\item The double timestamp value.
+\end{itemize}
+double getEventTimestamp(sList * node)
+
+\subparagraph{ceCurrentCapacity}
+It returns the number of record in the \textit{Calendar Event} data structure.
+Input:
+\begin{itemize}
+\item A pointer to the \textit{Calendar Event} data structure
+\end{itemize}
+Output:
+\begin{itemize}
+\item A double reprenting the number of events in the \textit{Calendar Event} data structure
+\end{itemize}
+
+double ceCurrentCapacity(sCalendarEvent *ce)
+
+
+\subparagraph{createEvent}
+
+It creates a sList node given a timestamp.
+Input
+\begin{itemize}
+\item A timestamp
+\end{itemize}
+Output:
+\begin{itemize}
+\item A pointer to the new sList element.
+\end{itemize}
+sList * createEvent(double timestamp)
+
+\subparagraph{destroyEvent}
+
+It removes or destroys a sList node. A boolean parameter (set to \textit{REMOVE} or \textit{DESTROY}) allows to apply or not the \textit{free} function.
+Input
+\begin{itemize}
+\item A pointer to a \textit{Calendar Event}
+\item A pointer to a \textit{sList}
+\end{itemize}
+Output:
+\begin{itemize}
+\item A pointer to removed sList node.
+\end{itemize}
+sList * 	destroyEvent(sCalendarEvent *, sList *, boolean);
+
+\paragraph{linearTimeTransform}
+
+It applies a time linear factor \(\alpha t + \beta , where \alpha, \beta \in \Re, \alpha \geq 0\) to a \textit{Calendar Event}. 
+ 
+Input:
+\begin{itemize}
+\item A pointer to the \textit{Calendar Event} 
+\item A double \textit{alpha} representing \(\alpha\)
+\item A double \textit{beta} representing \(\beta\)
+\item A double \textit{precision} representing the precision used to compare double values (note that this is used for \textit{Calendar Queue} data structure)
+\end{itemize}
+void linearTimeTransform(sCalendarEvent *, double, double, double);
+
+
+\paragraph{LIST}
+
+\subparagraph{delEventFromList}
+
+It destroys (or simply disconnects) a \textit{struct} from the \textit{List} or \textit{Bucket} (the same procedure is ued for both \textit{List} and \textit{Calendar Queue})
+Input: 
+\begin{itemize}
+\item a pointer to the List/Bucket structure
+\item a pointer to the node including the Event to be destroyed or disconnected
+\item a flag specifying if the node has t be destroyed (with a "free" function) or just disconnected from the \textit{List} or \textit{Bucket}
+\end{itemize}
+sList * delEventFromList(sList *list , sList *node, boolean destroy)
+
+
+\subparagraph{readList}
+
+It prints the List (Bucket) content
+Input
+\begin{itemize}
+\item The pointer to the first record;
+\end{itemize}
+void readList(sList *pointer)
+
+\subparagraph{freeList}
+
+It deallocates the memory for the list(bucket).
+
+Input:
+\begin{itemize}
+\item A pointer to the list
+\end{itemize}
+void freeList(sList *pointer)
+
+\subparagraph{addEventToList}
+
+It adds an item to a \textit{List} or \textit{Bucket}, with respect to the order relationship (<)
+
+Input:
+\begin{itemize}
+\item The pointer to the first element of the \textit{List} or \textit{Bucket}
+\item The item to be added
+\end{itemize}
+Output:
+\begin{itemize}
+\item The updated pointer to the first item of the \textit{List} or \textit{Bucket}
+\end{itemize}
+sList * addEventToList(sList **first, sEvent event, double precision)
+
+\subparagraph{linearTransformationList}
+
+It applies a time linear factor \(\alpha t + \beta, where \alpha, \{beta \in \Re,
+\alpha \geq 0\) to a \textit{List}. 
+Input:
+\begin{itemize}
+\item A pointer to the \textit{List} 
+\item A double \textit{alpha} representing \(\alpha;\)
+\item A double \textit{beta} representing \(\beta;\)
+\end{itemize}
+void linearTransformationList(sList *, double, double);
+
+
+
+
+\subsection{CALENDAR QUEUE}
+\subparagraph{freeCalendarQueue}
+
+It deallocates the memory for the CalendarQueue
+Input:
+\begin{itemize}
+\item a pointer to the Calendar Queue
+\end{itemize}
+void freeCalendarQueue(sCalendarQueue *cq)
+
+\subparagraph{addCalendarQueue}
+
+\begin{itemize}
+\item It creates the CalendarQueue record;
+\item It creates numberOfBuckets buckets;
+\item It initializes the min/max arrays, each one of bucketSize size
+\end{itemize}
+Input
+\begin{itemize}
+\item Pointer to the first element of the list;
+\item The CalendarQueue identifier
+\item The number of buckets
+\item The Bucket size
+\item The precision to compare double values
+\end{itemize}
+
+Output
+\begin{itemize}
+\item The pointer to the first record of the list/Bucket in the CalendarQueue
+\end{itemize}
+sCalendarQueue * addCalendarQueue(char *id, int numberOfBuckets, int bucketSize, double precision)
+
+\subparagraph{addEventToCalendarQueue}
+
+It adds an Event to the \textit{CalendarQueue} by choosing the right bucket.
+Input:
+\begin{itemize}
+\item The pointer to the CalendarQueue record;
+\item The item to be added
+\end{itemize}
+Output:
+\begin{itemize}
+\item A pointer to sList
+\end{itemize}
+sList * addEventToCalendarQueue(sCalendarQueue *calendarqueue, struct Event event, double precision)
+
+\subparagraph{readCalendarQueue}
+
+It prints the content of the CalendarQueue.
+Input:
+\begin{itemize}
+\item The pointer to the first record of the CalendarQueue.
+\end{itemize}
+void readCalendarQueue(sCalendarQueue *pointer)
+
+\subparagraph{DelEventFromCalendarQueue}
+
+It deletes the first event (the smallest) from a \textit{Calendar Queue}. 
+Input:
+\begin{itemize}
+\item A pointer to the \textit{Calendar Queue} 
+\item A pointer to a \textit{sList} node representing the event to be deleted
+\end{itemize}
+void DelEventFromCalendarQueue(sCalendarQueue *, sList * );
+
+\subparagraph{linearTransformationCalendarQueue}
+
+It applies a time linear factor \(\alpha t + \beta , where \alpha, \beta \in \Re, \alpha \geq 0\) to a \textit{Calendar Event} to a \textit{Calendar Queue}. 
+Input:
+\begin{itemize}
+\item A pointer to the \textit{Calendar Queue} 
+\item A double \textit{alpha} representing \(\alpha\)
+\item A double \textit{beta} representing \(\beta\)
+\item A double \textit{precision} representing the precision used to compare double values
+\end{itemize}
+void linearTransformationCalendarQueue(sCalendarQueue *, double , double , double )
+
+\paragraph{Heap}
+
+\subparagraph{freeHeap}
+
+It deallocates the memory reserved to the heap.
+Input:
+\begin{itemize}
+\item A Pointer to the \textit{Heap}
+\end{itemize}
+void freeHeap(sHeap *heap)
+
+
+\subparagraph{displayHeap}
+It displays the \textit{Heap} content.
+Input:
+\begin{itemize}
+\item A pointer to the \textit{Heap}
+\end{itemize}
+void displayHeap(sHeap *heap )
+
+
+\subparagraph{initializeHeap}
+It initializes the \textit{Heap}. Specifically, it allocates the memory for a \textit{sHeap} struct,
+for the \textit{K Index} components and finally, it allocates the first array of timestamps pointed by \textit{Index[0]}.
+Input:
+\begin{itemize}
+\item The \textit{K} and \textit{M} parameters
+\end{itemize}
+sHeap * initializeHeap(int K, int M)
+
+\subparagraph{addEventToHeap}
+
+It adds a timestamp to the Heap.
+Input:
+\begin{itemize}
+\item A Pointer to the \textit{Heap}
+\item A timestamp;
+\item The requested precision to compare double values.>/li>
+\end{itemize}
+Output:
+\begin{itemize}
+\item A pointer to the \textit{sHEap} structure.
+\end{itemize}
+sHeap *addEventToHeap(sHeap *heap, double T, double precision)
+
+\subparagraph{upHeap}
+It balances the \textit{Heap} in case the \textit{heapmin} property has been violated by a call to \textit{addEventToHeap} procedure.
+Input:
+\begin{itemize}
+\item The \textit{sList} pointer including the \textit{Heap} array. The usage of a \textit{sList} pointer  is requested to maintain coherence with
+the insertion procedures belonging to the \textit{List} and \textit{CalendarQueue} data structures.
+\item The array size;
+\item The precision value needed to compare two doubles.
+\end{itemize}
+void upHeap(sList *a, int k, double precision)
+
+
+\subparagraph{delEventFromHeap}
+void delEventFromHeap(sHeap *heap, double precision, boolean destroy)
+
+It deletes the first timestamp (the smallest) from the \textit{Heap}'s array. 
+No \textit{free} operation is performed. The deleted element's position is recovered by the next \textit{addEventToHeap} procedure.
+Input:
+\begin{itemize}
+\item A pointer to the \textit{Heap}\item 
+\item The precision value requested to compare two doubles;
+\item A boolean flag. Currently, it is ignored for the \textit{Heap}
+\end{itemize}
+
+\subparagraph{downheap}
+It balances the \textit{Heap} in case the \textit{heapmin} property has been violated by a call to \textit{delEventFromHeap} procedure.
+Input:
+\begin{itemize}
+\item The \textit{sList} pointer including the \textit{Heap} array. The usage of a \textit{sList} pointer  is requested to maintain coherence with
+the insertion procedures belonging to the \textit{List} and \textit{CalendarQueue} data structures.
+\item The position of the timestamp in the \textit{Heap}'s array to be deleted;
+\item The precision value needed to compare two doubles.
+\end{itemize}
+void downheap(sList *a,int k,  int n, double precision)
+
+\subparagraph{readHeap}
+It reads the content of a specific Heap location.
+Input:
+\begin{itemize}
+\item A pointer to the \textit{sHeap} data structure;
+\item An integer denoting the element location
+\end{itemize}
+Output:
+\begin{itemize}
+\item The event timestamp corresponding to the location in input
+\end{itemize}
+
+double readHeap(sHeap *heap, int i)
+
+\subparagraph{writeHeap}
+It writes a timestamp event to a specific \textit{Heap} location. The memory is created dynamically in \textit{M} chunks (this parameter is specified by the user in the command line when
+ the \textit{Scheduler} is invoked).
+ Input:
+ \begin{itemize}
+ \item A \textit{sHeap} pointer;
+ \item An integer representing the location where the timestamp is going to be written in the \textit{Heap};
+ \item A double representing the actual event timestamp.
+ \end{itemize}
+ Output:
+ \begin{itemize}
+ \item An integer representing the success or the failure of the insertion.
+ \end{itemize}
+ int writeHeap(sHeap *heap, int i, double x)
+
+\subparagraph{linearTransformationHeap}
+
+It applies a time linear factor \(\alpha t + \beta , where \alpha, \beta \in \Re, \alpha \geq 0\) to a \textit{Heap}. 
+Input:
+\begin{itemize}
+\item A pointer to the \textit{Heap} 
+\item A double \textit{alpha} representing \(\alpha\)
+\item A double \textit{beta} representing \(\beta\)
+\end{itemize}
+void linearTransformationHeap(Heap *, double , double )
+
+
+\paragraph{Utilities}
+\subparagraph{doubleCompare}
+
+It compares two double variables.
+Input:
+\begin{itemize}
+\item The two doubles \textit{a} and \textit{b} to be compared;
+\item The precision \textit{epsilon}
+\end{itemize}
+Output:
+\begin{itemize}
+\item $0$  if a = b
+\item $-1$ if a < b
+\item $1$  if a > b
+\end{itemize}
+int doubleCompare(double a, double b, double epsilon)
+
+\paragraph{AUXLISTS}
+
+\subparagraph{addToAux}
+
+It adds an sList * event to a \textit{sAuxlists}, without any ordering. The policy can be either FIFO or LIFO according to a flag (HEAD or TAIL) passed as parameter.
+Input :
+\begin{itemize}
+\item The pointers to the first and last element;
+\item The sList pointer to the event to be added
+\item A flag set to HEAD or TAIL.
+\end{itemize}
+Output:
+\begin{itemize}
+\item The updated pointers to the first and last events in the \textit{sAuxlists}
+\item An sList pointer to the added event.
+\end{itemize}
+sList * addToAux(sAuxlists *aux, sList * new, boolean mode)
+\subparagraph{delItemAux}
+
+It deletes the first or the last event to in a \textit{sAuxlists}. The policy can be either "delete from the head" or "delete from the tail" according to a flag (HEAD or TAIL) passed as parameter.
+
+Input:
+\begin{itemize} 
+\item The pointers to the first and last element;
+\item A flag set to HEAD or TAIL.
+\end{itemize}
+Output:
+\begin{itemize}
+\item An sList pointer to the added event.
+\item The updated pointers to the first and last events in the \textit{sAuxlists}
+\end{itemize}
+sList * delItemAux(sList **, sList **  , boolean );
+
+\subparagraph{createAUXLists}
+
+It creates a \textit{sAuxlists} data structure, initializing also its members.
+
+
+Output
+\begin{itemize}
+\item An sAuxlists pointer to the created \textit{sAuxlists} data structure
+\end{itemize}
+
+sAuxlists * createAUXLists()
+
+\subparagraph{getHowmanyAux}
+
+It returns the number of records in the unsorted \textit{sList} member of the \textit{sAuxlists} data structure.
+
+Input
+\begin{itemize}
+\item An sAuxlists pointer to the \textit{sAuxlists} data structure
+\end{itemize}
+
+Output
+\begin{itemize}
+\item The current value of \textit{N1} member of \textit{sAuxlists} data structure
+\end{itemize}
+
+\subparagraph{freeAuxiliaryList}
+
+It releases the \textit{sAuxlists} data structure memory allocation.
+
+Input
+\begin{itemize}
+\item An sAuxlists pointer to the \textit{sAuxlists} data structure
+\end{itemize}
+
+\subparagraph{RPop}
+
+It performs a \textit{pop} operation on a random basis, following two kind of policies: either the events are equiprobable (flag set to \textit{UNIFORM}) or depend on a weight (flag set to \textit{WEIGHT}).
+
+It the extraction is performed on the weight, then the \textit{threshold} value for each node is re-calculated.
+
+Input
+\begin{itemize}
+\item A \textit{sAuxlists} pointer to data structure memory;
+\item A flag to denote the extraction policy, set either to  \textit{UNIFORM} or to \textit{WEIGHT}
+\item A double pointer (passage by reference) to the extracted node.
+\end{itemize}
+
+void RPop(sAuxlists * aux, boolean flag, sList ** node)
+
+
+\subsection{An example of Scheduler}
+The Scheduler is an example of tool using the scheduler library. 
+
+\paragraph{Usage}
+The usage is:\\
+\textit{scheduler} Usage: scheduler {<i/>data\_structure} [\textit{Index\_dimension} \textit{array\_dimension}] [\textit{number\_of\_buckets} \textit{bucket's width}]
+Where:
+\begin{itemize}
+\item data\_structure is \textit{1} for LIST, \textit{2} for HEAP or \textit{3} for CALENDAR\_QUEUE
+\item for HEAP, you must specify Index dimension and array(slot) dimension \item
+\item for CALENDAR\_QUEUE, you must specify \textit{numberOfBuckets} and \textit{bucket\_width}
+\end{itemize}
+
+For example:
+scheduler 1 
+In this case, the scheduler has been invoked using a \textit{List}(\textit{1}).
+scheduler 3 10 10
+The scheduler has been invoked using a \textit{CalendarQueue}(3), using 10 buckets of size 10.
+scheduler 2 4 10
+The scheduler has been invoked using a \textit{Heap}(2), using an Index of dimension 4, each element of which is pointing to a slot of maximum 10 elements.
+
+Two examples are here presented:
+\begin{itemize}
+\item A scheduler able to create events and store them on a \textit{List}, a \textit{Heap} or a \textit{Calendar Queue}
+\item An example of the Auxiliary list usage.
+\end{itemize}
+
+\subsubsection{Using the Calendar Event data structure }
+
+
+\subparagraph{Validation and variables declaration}
+The Scheduler performs initially different steps:
+\begin{itemize}
+\item It declares a pointer to \textit{sCalendarEvent};
+\item It performs a validation of the input parameters and load some embedded parameters (among which, for example, the precision \textit{epsilon}). It returns a pointer to the \textit{sParameters} structure;
+\item It declares an array of \textit{sList} elements called \textit{nodes} used to input some timestamps and a further \textit{sList} element called \textit{out} that will be used later for a \textit{pop} operation. 
+\end{itemize}
+
+int main(int argc, char *argv[])\\
+{\\
+sCalendarEvent *ce;\\
+sParameters *pars = validate(argc, argv);\\
+sList *nodes[10], *out;\\
+ce = createCE(pars);\\
+
+The \textit{createCE} procedure is invoked passing the \textit{pars} parameters input. It returns a pointer to the \textit{CalendarEvent}, allocating the memory for the \textit{CalendarEvent} and 
+the corresponding data structure (\textit{List}, \textit{Heap},
+or \textit{CalendarQueue}).
+
+\subparagraph{Adding events to the CalendarEvent}
+
+It is necessary to invoke the \textit{addEvent} procedure, providing in input:
+\begin{itemize}
+\item A pointer to the CalendarEvent
+\item a pointer to a sList structure including a timestamp (this can be achieved by using the \textit{createEvent} procedure).
+\end{itemize}
+addEvent returns a \textit{sList} pointer including the timestamp just added and - when using a \textit{List} or a \textit{CalendarList} - a valid \textit{next} and \textit{previous} pointers.
+Next, it is convenient to print the \textit{CalendarEvent} content to verify that the \textit{addEvent} operation has completed successfully.
+
+nodes[0] = addEvent(ce, createEvent(40.0)); 	displayCE(ce);\\
+
+In the same fashion, it is possible to add more timestamps:
+
+nodes[1] = addEvent(ce, createEvent(30.0));	displayCE(ce);\\
+nodes[2] = addEvent(ce, createEvent(10.0));	displayCE(ce);\\
+
+which adds other two timestamps (whose values are respectively 30 and 10) to the \textit{CalendarEvent}.
+
+\subparagraph{Destroy, add and pop events}
+The following operations performs the following:
+\begin{itemize}
+\item Destroy (a \textit{free} operation is performed since the \textit{DESTROY} flag is used) a timestamp from the \textit{CalendarEvent};
+\item Add two new timestamps (with timestamps set respectively to 12 and 5);
+\item Destroy (performing actually a \textit{remove} operation, that is without performing a \textit{free} operation since the \textit{REMOVE} flag is used) of \textit{nodes[3]}
+\item Invoke the \textit{popEvent} procedure to extract the first (and smallest) timestamp;
+\item Add another timestamp.
+\end{itemize}
+
+destroyEvent(ce, nodes[0], DESTROY);displayCE(ce);\\
+nodes[3] = addEvent(ce, createEvent(12.0));	displayCE(ce);\\
+nodes[4] = addEvent(ce, createEvent(5.0));	displayCE(ce);\\
+destroyEvent(ce, nodes[3], REMOVE);displayCE(ce);\\
+popEvent(ce, \&out);displayCE(ce);\\
+nodes[5] = addEvent(ce, createEvent(1.0));displayCE(ce);\\
+
+
+The nodes that were extracted (through a "pop" operation) or removed are re-inserted:
+
+nodes[3] = addEvent(ce, nodes[3]);	displayCE(ce); \\
+nodes[0] = addEvent(ce, nodes[0]);	displayCE(ce); \\
+out = addEvent(ce, out);	displayCE(ce); \\
+
+\subparagraph{Deallocating the memory}
+
+Finally, the \textit{CalendarEvent} data structure is released. The \textit{nodes} and \textit{out} variables must released as well by the user.
+
+freeCalendarEvent(ce);\\
+}
+
+\subparagraph{Using the Auxiliary list}
+
+Sometimes, it is useful to store temporarily events that cannot be placed in the \textit{Calendar Event}. In this case, it is possible to use the Auxiliary list, which includes two pointers
+to a sList data structure, respectively to the first and the last element. \textit{Pop} operations can be performed in different ways, either from the top or from the end of the list, or randomly - either
+uniformly (all the events are equiprobable) or according to a weight associated to the event. The code performs the following:
+
+\subparagraph{Initialization}
+
+int demoDLL()\\
+{\\
+	sList *out1, *out2, *out3;\\\\\\
+
+
+	out1 = (sList *)malloc(sizeof(sList));\\
+	out2 = (sList *)malloc(sizeof(sList));\\
+	out3 = (sList *)malloc(sizeof(sList));\\
+\\
+\\
+	sList *node = NULL;\\
+	sAuxlists * aux = createAUXLists();\\
+ Three sList * variables \textit{out1}, \textit{out2} and \textit{out3} are created. The \textit{sAuxlists} data struture is istantiated.
+
+\subparagraph{Adding the events}
+Six new events are created. For each one, the \textit{timestamp} and the \textit{weight} are passed as arguments to \textit{createEventW} procedure. Correspondgly, the auxiliary list's content is displayed each time by 
+using \textit{readListW} procedure.
+
+	node = addToAux(aux, createEventW(12, 2), TAIL);readListW(aux->auxF1);\\
+	node = addToAux(aux, createEventW(31, 3), TAIL);readListW(aux->auxF1);\\
+	node = addToAux(aux, createEventW(7, 1), TAIL);readListW(aux->auxF1);\\
+	node = addToAux(aux, createEventW(19, 4), HEAD);readListW(aux->auxF1);\\
+	node = addToAux(aux, createEventW(150, 5), TAIL);readListW(aux->auxF1);\\
+	node = addToAux(aux, createEventW(987, 2), HEAD);readListW(aux->auxF1);\\
+	
+\subparagraph{Removing the events by the tail or the head of the list}
+Two elements are removed from the list, respectively the last (TAIL) and the first (HEAD). If the first element is removed, the \textit{delItemAux} re-calculates the thresholds for 
+each component of the list.
+
+	readEvent( delItemAux(aux, TAIL));printf("\\n");readListW(aux->auxF1);\\
+	readEvent( delItemAux(aux, HEAD));printf("\\n");readListW(aux->auxF1);\\
+
+\subparagraph{Random pop operation of the events by uniform or weighted policy}	
+Three elements of the list are extracted by using a \textit{pop} operation exploiting either the \textit{weight} attribute (each element can be extracted according to a probability depending on the weight) or simply extracting randomly the event
+ (being N the events in the list, the probability to extracted the \textit{i-th} is \textit{1/N}).
+ 
+	RPop(aux, WEIGHT, \&out1);readListW(aux->auxF1);\\
+	RPop(aux, WEIGHT, \&out2);readListW(aux->auxF1);\\
+	RPop(aux, UNIFORM, \&out3);readListW(aux->auxF1);\\
+
+\subparagraph{Release the memory}	
+All the data structures are released.
+	
+	free(out1);\\
+	free(out2);\\
+	free(out3);\\
+\\
+	freeAuxiliaryList(aux);\\
+\\
+	return 1;
