@@ -1,5 +1,6 @@
-/*
-## Copyright 2017 Marco Gribaudo <marco.gribaudo@polimi.it>
+#!/bin/sh
+
+## Copyright 2017 Eugenio Gianniti <eugenio.gianniti@polimi.it>
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -12,36 +13,14 @@
 ## WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ## See the License for the specific language governing permissions and
 ## limitations under the License.
-*/
 
+SOURCE="$0"
+while [ -L "$SOURCE" ]; do
+    DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+    SOURCE="$(readlink "$SOURCE")"
+    [ "${SOURCE:0:1}" != / ] && SOURCE="$DIR/$SOURCE"
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <string.h>
-#include <math.h>
-#include <time.h>
-
-#include "matrix/Matrix.h"
-#include "luaInterface.h"
-#include "distributions.h"
-
-
-
-double Rnd() {
-// replace with Merseen-Twister
-	return drand48();
-}
-
-void SetSeed(int seed) {
-	srand48(seed);
-}
-
-void SetRandomSeed() {
-	srand48(time(NULL));
-}
-
-
-void SetRandomSeedTh(int i, int n) {
-	srand48(time(NULL)*n+i);
-}
+export LUA_PATH="${LUA_PATH:-?;?.lua};$DIR/?;$DIR/?.lua"
+exec "$DIR"/dagSim "$DIR/_solverLib.lua" ${1+"$@"}
