@@ -107,7 +107,34 @@ function solver.writeResFilteredAction(R, filename, filter, action)
 end
 --
 function solver.main()	-- default main solution component
-	solver.printRes(solver.solve());
+	local addStageName = false;
+	if (#_exe.args > 2) then
+		for _,v in pairs(_exe.args) do
+		  if v == "-s" then
+		    	addStageName = true;
+		    break
+		  end
+		end
+	end
+	if (addStageName) then
+		local row = 1;
+		local R = solver.solve();
+		while (R[row]) do
+			local col = 1;
+			local out = "";
+			while (R[row][col]) do
+				out = out .. R[row][col] .. "\t";
+				col = col + 1;
+			end
+			if (R[row][1] == 1) then
+				out = out .. Stages[R[row][2]].name;
+			end
+			print(out);
+			row = row + 1;
+		end
+	else
+		solver.printRes(solver.solve());
+	end
 end
 --
 function solver.fileToArray(fileName)
