@@ -148,7 +148,7 @@ function solver.fileToArray(fileName)
 	    end
 	    file:close()
 	else
-	    error('file not found')
+	    error('file not found ' .. fileName)
 	end
 	return tbllines;
 end
