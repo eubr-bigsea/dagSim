@@ -1,3 +1,15 @@
+*.o
+*.a
+dagSim
+distribGen
+lua
+luac
+
+ # Windows image file caches
+ Thumbs.db
+ ehthumbs.db
+
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
