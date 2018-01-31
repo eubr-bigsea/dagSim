@@ -116,24 +116,54 @@ function solver.main()	-- default main solution component
 		  end
 		end
 	end
-	if (addStageName) then
-		local row = 1;
-		local R = solver.solve();
+	if NPerc > 0 then
+		outputPercentiles = true
+	end
+	local row = 1;
+	local R = solver.solve();
+	while (R[row]) do
+		if outputPercentiles then
+			nc = #R[row] - 3*(NPerc-1);
+		else
+			nc = #R[row];
+		end
+		local col = 1;
+		local out = "";
+		while (col <= nc) do
+			out = out .. R[row][col] .. "\t";
+			col = col + 1;
+		end
+		if (addStageName) then
+			if (R[row][1] == 1) then
+				out = out .. Stages[R[row][2]].name;
+			end
+		end
+		print(out);
+		row = row + 1;
+	end
+	if outputPercentiles then
+		print("####### PERCENTILES ####### "..(NPerc-1).." values in total ######");
+		row = 1;
 		while (R[row]) do
 			local col = 1;
 			local out = "";
-			while (R[row][col]) do
+			while (col <= #R[row] - 3*(NPerc-1) - 5) do
 				out = out .. R[row][col] .. "\t";
 				col = col + 1;
 			end
-			if (R[row][1] == 1) then
-				out = out .. Stages[R[row][2]].name;
+			col = #R[row] - 3*(NPerc-1) + 1;
+			while (col <= #R[row]) do
+				out = out .. R[row][col] .. "\t";
+				col = col + 1;
+			end
+			if (addStageName) then
+				if (R[row][1] == 1) then
+					out = out .. Stages[R[row][2]].name;
+				end
 			end
 			print(out);
 			row = row + 1;
 		end
-	else
-		solver.printRes(solver.solve());
 	end
 end
 --

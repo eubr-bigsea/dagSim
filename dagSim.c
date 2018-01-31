@@ -52,6 +52,8 @@ typedef struct {
 	
 	int maxJobs;	// total number of jobs to simulate
 	double confIntCoeff;	// coefficient for the confidence intervals
+	int NPerc;	// Number of percentiles
+	int MaxPercSamp;	// Maximum number of samples to compute percentiles
 } Model;
 
 
@@ -163,6 +165,9 @@ Model *createModel(LuaWrapper *Lw) {
 	}
 	M->maxJobs = readRealDef(L, "maxJobs", 1000);
 	M->confIntCoeff = readRealDef(L, "confIntCoeff", 1.96);
+	M->NPerc = readRealDef(L, "NPerc", 0);
+	
+	M->MaxPercSamp = readRealDef(L, "MaxPercSamp", 10000);
 	return M;
 }
 
@@ -239,11 +244,13 @@ typedef struct {
 	double Val;			// Sum of the measure
 	double Val2;		// Sum of the square of the measure
 	double N;			// Number of samples considered
+	double *PercSamp;	// Samples for percentiles
 } PerfIdx;
 
 typedef struct {
 	PerfIdx *M;		// Array of measures
 	int N;			// number of measures
+	int MaxPercSamp;	// Maximum number of samples for percentiles
 } PerfIdxs;
 
 #define MEASURES_SYSTEM 4
@@ -267,16 +274,22 @@ PerfIdxs *createPerfIdxs(Model *M) {
 	out->N = MEASURES_SYSTEM + M->nStages * MEASURES_XSTAGE;
 	out->M = (PerfIdx *)calloc(sizeof(PerfIdx), out->N);
 	
+	out->MaxPercSamp = (M->MaxPercSamp < M->maxJobs) ? M->MaxPercSamp : M->maxJobs;
 	for(i = 0; i < out->N; i++) {
 		out->M[i].Val  = 0.0;
 		out->M[i].Val2 = 0.0;
 		out->M[i].N    = 0.0;
+		out->M[i].PercSamp = calloc(out->MaxPercSamp, sizeof(double));
 	}
 	
 	return out;
 }
 
 void destroyPerfIdxs(PerfIdxs *P) {
+	int i;
+	for(i = 0; i < P->N; i++) {
+		free(P->M[i].PercSamp);
+	}	
 	free(P->M);
 	free(P);
 }
@@ -284,24 +297,59 @@ void destroyPerfIdxs(PerfIdxs *P) {
 void measureAddSample(PerfIdxs *P, int sid, double val) {
 	P->M[sid].Val  += val;
 	P->M[sid].Val2 += val*val;
+	if((int)P->M[sid].N < P->MaxPercSamp) {
+		P->M[sid].PercSamp[(int)P->M[sid].N] = val;
+	}
 	P->M[sid].N++;
 }
 
-int makeConfInt(double *vals, int col, PerfIdxs *PI, int sid, double Zval) {
+int comp (const void * elem1, const void * elem2) 
+{
+    double f = *((double*)elem1);
+    double s = *((double*)elem2);
+    if (f > s) return  1;
+    if (f < s) return -1;
+    return 0;
+}
+
+double calcPerc(double *IdxIn, int N, double p) {
+	double idx = floor(p);
+	double alpha = p-idx;
+	if((idx < 1) || (idx >= N)) {
+		return -1.0;
+	} else {
+		return IdxIn[(int)idx-1]*(1-alpha) + IdxIn[(int)idx]*alpha;
+	}
+}
+
+int makeConfInt(double *vals, int col, PerfIdxs *PI, int sid, double Zval, int NPerc) {
+//printf("Idx:%d,\t N=%lf\n", sid, PI->M[sid].N);
 	if(PI->M[sid].N > 0) {
 		vals[col]   = PI->M[sid].Val / PI->M[sid].N;
 		vals[col+1] = sqrt(PI->M[sid].Val2 / PI->M[sid].N - vals[col]*vals[col]);
 		vals[col+2] = vals[col] - vals[col+1] * Zval / sqrt(PI->M[sid].N);
 		vals[col+3] = vals[col] + vals[col+1] * Zval / sqrt(PI->M[sid].N);
 		vals[col+4] = (vals[col] > 0) ? (vals[col+3] - vals[col+2]) / vals[col] : 0.0;
+		if(NPerc > 1) {
+			int i, actPercSamp = PI->M[sid].N < PI->MaxPercSamp ? PI->M[sid].N : PI->MaxPercSamp;
+			qsort(PI->M[sid].PercSamp, actPercSamp, sizeof(double), comp);
+			for(i = 1; i < NPerc; i++) {
+				double p = (double)(actPercSamp+1) * (double)i / (double)NPerc;
+				double delta = Zval * sqrt((double)(actPercSamp+1) * (double)i / (double)NPerc * (1.0-(double)i / (double)NPerc));
+				vals[col+2+3*i] = calcPerc(PI->M[sid].PercSamp, actPercSamp, p-delta);
+				vals[col+3+3*i] = calcPerc(PI->M[sid].PercSamp, actPercSamp, p);
+				vals[col+4+3*i] = calcPerc(PI->M[sid].PercSamp, actPercSamp, p+delta);
+			}
+		}
+		return (NPerc > 1 ? 5 + 3*(NPerc-1) : 5);
 	} else {
 		vals[col]   = -1.0;
 		vals[col+1] = -1.0;
 		vals[col+2] = -1.0;
 		vals[col+3] = -1.0;
 		vals[col+4] = -1.0;
+		return 5;
 	}
-	return 5;
 }
 
 typedef struct {
@@ -495,15 +543,16 @@ void relseaseNode(double T, sCalendarEvent *ce, NodeData *ND, UserJobData **UJD,
 }
 
 
-#define MAX_VALS 128
+#define EXTRA_VALS 128
 // solves the model and sends the results to lua
 
 void solve(Model *M, LuaWrapper *Lw) {
-	double vals[MAX_VALS];
+	double *vals;
 	int row, col;
 	int i;
 
 	PerfIdxs *PI = createPerfIdxs(M);
+	vals = calloc(EXTRA_VALS + M->NPerc*3, sizeof(double));
 	
 	RestartAllDistributions(M, Lw);
 	
@@ -616,22 +665,22 @@ void solve(Model *M, LuaWrapper *Lw) {
 	col = 0;
 	vals[col++] = 0;
 	vals[col++] = M_SYS_TOT;
-	col += makeConfInt(vals, col, PI, MEAS_ID(0,M_SYS_TOT), M->confIntCoeff);
+	col += makeConfInt(vals, col, PI, MEAS_ID(0,M_SYS_TOT), M->confIntCoeff, M->NPerc);
 	sendResult(row++, col, vals, Lw->L);
 	col = 0;
 	vals[col++] = 0;
 	vals[col++] = M_SYS_WAIT;
-	col += makeConfInt(vals, col, PI, MEAS_ID(0,M_SYS_WAIT), M->confIntCoeff);
+	col += makeConfInt(vals, col, PI, MEAS_ID(0,M_SYS_WAIT), M->confIntCoeff, M->NPerc);
 	sendResult(row++, col, vals, Lw->L);
 	col = 0;
 	vals[col++] = 0;
 	vals[col++] = M_SYS_JOB;
-	col += makeConfInt(vals, col, PI, MEAS_ID(0,M_SYS_JOB), M->confIntCoeff);
+	col += makeConfInt(vals, col, PI, MEAS_ID(0,M_SYS_JOB), M->confIntCoeff, M->NPerc);
 	sendResult(row++, col, vals, Lw->L);
 	col = 0;
 	vals[col++] = 0;
 	vals[col++] = M_AVE_THINK_TIME;
-	col += makeConfInt(vals, col, PI, MEAS_ID(0,M_AVE_THINK_TIME), M->confIntCoeff);
+	col += makeConfInt(vals, col, PI, MEAS_ID(0,M_AVE_THINK_TIME), M->confIntCoeff, M->NPerc);
 	sendResult(row++, col, vals, Lw->L);
 
 	for(i = 0; i < M->nStages; i++) {
@@ -639,25 +688,25 @@ void solve(Model *M, LuaWrapper *Lw) {
 		vals[col++] = 1;
 		vals[col++] = i+1;
 		vals[col++] = M_XST_START;
-		col += makeConfInt(vals, col, PI, MEAS_ID(i+1,M_XST_START), M->confIntCoeff);
+		col += makeConfInt(vals, col, PI, MEAS_ID(i+1,M_XST_START), M->confIntCoeff, M->NPerc);
 		sendResult(row++, col, vals, Lw->L);
 		col = 0;
 		vals[col++] = 1;
 		vals[col++] = i+1;
 		vals[col++] = M_XST_END;
-		col += makeConfInt(vals, col, PI, MEAS_ID(i+1,M_XST_END), M->confIntCoeff);
+		col += makeConfInt(vals, col, PI, MEAS_ID(i+1,M_XST_END), M->confIntCoeff, M->NPerc);
 		sendResult(row++, col, vals, Lw->L);
 		col = 0;
 		vals[col++] = 1;
 		vals[col++] = i+1;
 		vals[col++] = M_XST_DUR;
-		col += makeConfInt(vals, col, PI, MEAS_ID(i+1,M_XST_DUR), M->confIntCoeff);
+		col += makeConfInt(vals, col, PI, MEAS_ID(i+1,M_XST_DUR), M->confIntCoeff, M->NPerc);
 		sendResult(row++, col, vals, Lw->L);
 		col = 0;
 		vals[col++] = 1;
 		vals[col++] = i+1;
 		vals[col++] = M_XST_AVE_SERV_TIME;
-		col += makeConfInt(vals, col, PI, MEAS_ID(i+1,M_XST_AVE_SERV_TIME), M->confIntCoeff);
+		col += makeConfInt(vals, col, PI, MEAS_ID(i+1,M_XST_AVE_SERV_TIME), M->confIntCoeff, M->NPerc);
 		sendResult(row++, col, vals, Lw->L);
 	}
 	
@@ -672,6 +721,7 @@ void solve(Model *M, LuaWrapper *Lw) {
 	destroyNodeData(ND);
 	
 	destroyPerfIdxs(PI);
+	free(vals);
 }
 
 

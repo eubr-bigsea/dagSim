@@ -42,7 +42,7 @@ Users = 1;
 UThinkTimeDistr = {type = "exp", params = {rate = 1/10000.0}};
 
 -- Total number of jobs to simulate
-maxJobs = 5000;
+maxJobs = 25000;
 -- Coefficient for the Confidence Intervals
 -- 99%	2.576
 -- 98%	2.326
@@ -57,10 +57,10 @@ confIntCoeff = 1.96;
 -- NPerc = 20 : 5%, 10%, ..., 95%
 -- (NPerc-1 values in total)
 -- Nperc = 0: Do not compute percentiles
-NPerc = 0;
+NPerc = 100;
 
 -- Maximum samples of percentiles (meaningful only if less than maxJobs)
-MaxPercSamp = 1000;
+MaxPercSamp = 20000;
 
 -- -- -- -- -- -- -- -- -- -- -- --
 -- -- -- -- supported distributions:
